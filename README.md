@@ -69,6 +69,20 @@ Each transition exposes:
 - deterministic window start/end timestamps.
 
 The first implementation deliberately requires ordered event time and `slide <= width`; it does not yet handle late or out-of-order events. With `--flush`, the trace continues until every previously active event has expired, which makes event lifecycle tests auditable.
+## v0.2.1 full-window recomputation oracle
+
+v0.2.1 adds a deliberately simple reference path that recomputes `HighRecentConsumption` from the complete contents of each window. It does not reuse prior aggregates or window deltas.
+
+For every window:
+
+```text
+current window events
+→ group load observations by plug
+→ recompute count / sum / average from scratch
+→ derive HighRecentConsumption
+```
+
+This path is intended to act as the correctness oracle for v0.2.2 incremental maintenance.
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
@@ -95,6 +109,7 @@ pip install -r requirements.txt
 python experiments/run_v0_1.py --regenerate --events 5000 --repetitions 10
 python experiments/run_v0_1_1_entailment.py --regenerate --events 5000
 python experiments/run_v0_2_windows.py --regenerate --events 5000 --width 3600 --slide 60 --flush
+python experiments/run_v0_2_recompute.py --regenerate --events 5000 --width 3600 --slide 60 --flush
 pytest -q
 ```
 
@@ -105,6 +120,7 @@ results/benchmark_v0_1.csv
 results/benchmark_v0_1.md
 results/entailment_v0_1_1.csv
 results/window_trace_v0_2_0.csv
+results/recompute_v0_2_1.csv
 ```
 
 To test scaling:
@@ -155,7 +171,7 @@ These boundaries are deliberate: the repository is intended to make the transiti
 
 ### v0.2 — incremental/window maintenance
 - **v0.2.0 complete:** deterministic sliding windows with explicit additions/expirations and boundary tests;
-- v0.2.1: full-window recomputation baseline;
+- **v0.2.1 complete:** full-window recomputation oracle with per-window timing and facts;
 - v0.2.2: incremental support-state maintenance and retractions;
 - v0.2.3: comparative benchmark and aggregate metrics;
 - design specification: [`docs/v0.2-design.md`](docs/v0.2-design.md).

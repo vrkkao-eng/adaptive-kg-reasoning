@@ -29,3 +29,8 @@ jobs:
           python experiments/run_v0_2_windows.py --regenerate --events 300 --width 60 --slide 15 --flush
           echo "--- window_trace_v0_2_0.csv (first rows) ---"
           head -n 5 results/window_trace_v0_2_0.csv
+      - name: Run v0.2.1 recomputation smoke test
+        run: |
+          python experiments/run_v0_2_recompute.py --regenerate --events 300 --width 60 --slide 15 --flush
+          echo "--- recompute_v0_2_1.csv (first rows) ---"
+          head -n 5 results/recompute_v0_2_1.csv

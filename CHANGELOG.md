@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.1 — full-window recomputation oracle
+
+- Added a reference implementation that recomputes per-plug load aggregates from the complete current window.
+- Added transparent `count`, `total_load`, and `average_load` aggregates.
+- Added `HighRecentConsumption` derivation from the recomputed window only.
+- Added per-window timing and result metrics for the oracle path.
+- Added tests for threshold behaviour, non-load filtering, empty windows, and reference metrics.
+- Added a reproducible recomputation experiment writing `results/recompute_v0_2_1.csv`.
+
+### Scope boundary
+
+v0.2.1 deliberately does not reuse prior-window state or `added` / `expired` deltas. It is the independent correctness oracle for the incremental implementation planned in v0.2.2.
+
 ## v0.2.0 — deterministic sliding-window mechanics
 
 - Added an event model for the DEBS-shaped stream.
