@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.2 — incremental support-state maintenance
+
+- Added per-plug incremental support state using active-event registry, count, and total load.
+- Added idempotent transition handling so replayed additions/expirations do not double-count.
+- Added fact additions when averages cross the threshold upward.
+- Added fact retractions when expirations or updates remove sufficient support.
+- Added strict per-window equivalence checks against the v0.2.1 full recomputation oracle.
+- Added divergence metrics: symmetric difference, false additions, and missed facts.
+- Added a reproducible incremental experiment writing `results/incremental_v0_2_2.csv`.
+
+### Scope boundary
+
+v0.2.2 maintains one transparent aggregate-derived state only. It is not a general truth-maintenance engine, arbitrary continuous SPARQL evaluator, or incremental OWL-RL reasoner.
+
 ## v0.2.1 — full-window recomputation oracle
 
 - Added a reference implementation that recomputes per-plug load aggregates from the complete current window.

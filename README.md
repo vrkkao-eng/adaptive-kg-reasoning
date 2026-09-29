@@ -83,6 +83,21 @@ current window events
 ```
 
 This path is intended to act as the correctness oracle for v0.2.2 incremental maintenance.
+## v0.2.2 incremental maintenance
+
+v0.2.2 maintains per-plug support state across window transitions instead of recomputing every aggregate from scratch. The maintained state consists of active load-event IDs plus per-plug `count` and `total_load`.
+
+For each transition:
+
+```text
+expire old load events
++ add new load events
+→ update only affected plugs
+→ recompute affected averages
+→ add or retract HighRecentConsumption
+```
+
+Every incremental result is checked against the independent v0.2.1 full-window oracle. Any non-zero symmetric difference is treated as a correctness failure.
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
@@ -110,6 +125,7 @@ python experiments/run_v0_1.py --regenerate --events 5000 --repetitions 10
 python experiments/run_v0_1_1_entailment.py --regenerate --events 5000
 python experiments/run_v0_2_windows.py --regenerate --events 5000 --width 3600 --slide 60 --flush
 python experiments/run_v0_2_recompute.py --regenerate --events 5000 --width 3600 --slide 60 --flush
+python experiments/run_v0_2_incremental.py --regenerate --events 5000 --width 3600 --slide 60 --flush
 pytest -q
 ```
 
@@ -121,6 +137,7 @@ results/benchmark_v0_1.md
 results/entailment_v0_1_1.csv
 results/window_trace_v0_2_0.csv
 results/recompute_v0_2_1.csv
+results/incremental_v0_2_2.csv
 ```
 
 To test scaling:
@@ -172,7 +189,7 @@ These boundaries are deliberate: the repository is intended to make the transiti
 ### v0.2 — incremental/window maintenance
 - **v0.2.0 complete:** deterministic sliding windows with explicit additions/expirations and boundary tests;
 - **v0.2.1 complete:** full-window recomputation oracle with per-window timing and facts;
-- v0.2.2: incremental support-state maintenance and retractions;
+- **v0.2.2 complete:** incremental support-state maintenance, additions/retractions, idempotence, and strict oracle equivalence;
 - v0.2.3: comparative benchmark and aggregate metrics;
 - design specification: [`docs/v0.2-design.md`](docs/v0.2-design.md).
 

@@ -34,3 +34,8 @@ jobs:
           python experiments/run_v0_2_recompute.py --regenerate --events 300 --width 60 --slide 15 --flush
           echo "--- recompute_v0_2_1.csv (first rows) ---"
           head -n 5 results/recompute_v0_2_1.csv
+      - name: Run v0.2.2 incremental equivalence smoke test
+        run: |
+          python experiments/run_v0_2_incremental.py --regenerate --events 500 --width 120 --slide 30 --flush
+          echo "--- incremental_v0_2_2.csv (first rows) ---"
+          head -n 5 results/incremental_v0_2_2.csv
