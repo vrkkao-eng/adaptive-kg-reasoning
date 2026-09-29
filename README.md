@@ -139,7 +139,8 @@ These boundaries are deliberate: the repository is intended to make the transiti
 - advance the stream through repeated windows;
 - distinguish additions and expirations;
 - compare recomputation vs incremental maintenance;
-- measure maintenance cost and stale-result risk.
+- measure maintenance cost and stale-result risk;
+- design specification: [`docs/v0.2-design.md`](docs/v0.2-design.md).
 
 ### v0.3 — cost-aware selective materialisation
 Introduce an explicit utility function using factors such as reuse frequency, update frequency, result size, and memory cost.
