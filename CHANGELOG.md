@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.0 — deterministic sliding-window mechanics
+
+- Added an event model for the DEBS-shaped stream.
+- Added half-open sliding-window semantics: `[start, end)`.
+- Added explicit per-transition `added` and `expired` event sets.
+- Added optional flush mode so every active event can be observed expiring.
+- Added validation for duplicate IDs, out-of-order event time, invalid widths/slides, and window gaps.
+- Added property-filtered CSV loading for later load-only reasoning experiments.
+- Added a reproducible window-trace experiment.
+- Added tests for exact boundary behaviour, event lifecycle uniqueness, and transition reconstruction.
+
+### Scope boundary
+
+v0.2.0 implements window mechanics only. It does not yet implement full recomputation, incremental aggregates, fact retractions, result-equivalence benchmarking, or formal RDF Stream Processing semantics.
+
+# Changelog
+
 ## v0.1.1 — semantic entailment baseline
 
 - Promoted `owlrl` from a planned optional dependency to an executable baseline.

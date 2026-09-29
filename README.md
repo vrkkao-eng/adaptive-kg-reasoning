@@ -1,6 +1,6 @@
 # adaptive-kg-reasoning
 
-**v0.1.1 — a research-oriented learning prototype for materialisation decisions and a small OWL-RL entailment baseline in dynamic Knowledge Graph workloads.**
+**v0.2.0 — window mechanics for a research-oriented prototype on materialisation decisions in dynamic Knowledge Graph workloads.**
 
 The core question is:
 
@@ -57,6 +57,18 @@ The committed v0.1.1 reference run uses the deterministic 5,000-event synthetic 
 
 The timing is **environment-specific** and should be treated as a reproducible reference run, not a performance claim. The important v0.1.1 correctness signal is that the OWL-RL closure derives the expected class memberships without relying on the hand-written Python derivation path.
 
+## v0.2.0 sliding-window mechanics
+
+v0.2.0 adds deterministic event-time sliding windows before any incremental reasoning is introduced. Window membership uses the half-open interval `[start, end)`: an event at `start` is included, while an event at `end` is deferred to a later window.
+
+Each transition exposes:
+
+- the active events in the current window;
+- events newly added since the preceding window;
+- events expired since the preceding window;
+- deterministic window start/end timestamps.
+
+The first implementation deliberately requires ordered event time and `slide <= width`; it does not yet handle late or out-of-order events. With `--flush`, the trace continues until every previously active event has expired, which makes event lifecycle tests auditable.
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
@@ -82,6 +94,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python experiments/run_v0_1.py --regenerate --events 5000 --repetitions 10
 python experiments/run_v0_1_1_entailment.py --regenerate --events 5000
+python experiments/run_v0_2_windows.py --regenerate --events 5000 --width 3600 --slide 60 --flush
 pytest -q
 ```
 
@@ -91,6 +104,7 @@ Outputs are written to:
 results/benchmark_v0_1.csv
 results/benchmark_v0_1.md
 results/entailment_v0_1_1.csv
+results/window_trace_v0_2_0.csv
 ```
 
 To test scaling:
@@ -111,14 +125,18 @@ adaptive-kg-reasoning/
 ├── docs/
 │   ├── architecture.md
 │   ├── literature-notes.md
-│   └── research-question.md
+│   ├── research-question.md
+│   └── v0.2-design.md
 ├── experiments/
 │   ├── run_v0_1.py
-│   └── run_v0_1_1_entailment.py
+│   ├── run_v0_1_1_entailment.py
+│   └── run_v0_2_windows.py
 ├── queries/
 ├── results/
 ├── src/adaptive_kg_reasoning/
+│   └── windows.py      # deterministic sliding-window transitions
 └── tests/
+    └── test_windows.py
 ```
 
 ## What this project does **not** claim
@@ -136,10 +154,10 @@ These boundaries are deliberate: the repository is intended to make the transiti
 ## Roadmap
 
 ### v0.2 — incremental/window maintenance
-- advance the stream through repeated windows;
-- distinguish additions and expirations;
-- compare recomputation vs incremental maintenance;
-- measure maintenance cost and stale-result risk;
+- **v0.2.0 complete:** deterministic sliding windows with explicit additions/expirations and boundary tests;
+- v0.2.1: full-window recomputation baseline;
+- v0.2.2: incremental support-state maintenance and retractions;
+- v0.2.3: comparative benchmark and aggregate metrics;
 - design specification: [`docs/v0.2-design.md`](docs/v0.2-design.md).
 
 ### v0.3 — cost-aware selective materialisation
