@@ -10,6 +10,8 @@
 - Added a minimal fact-read timing proxy; it is explicitly not presented as SPARQL/RSP query latency.
 - Added default overlap scenarios `3600/60`, `3600/300`, and `3600/900`.
 - Added detailed and summary CSV outputs for reproducible reference runs.
+- CI reference: 26 tests passed; all benchmark windows were equivalent to full recomputation.
+- CI total speedup was 17.613× (3600/60), 5.448× (3600/300), and 2.176× (3600/900).
 
 ### Scope boundary
 

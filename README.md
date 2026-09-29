@@ -114,6 +114,17 @@ Headline metrics include:
 - strict result equivalence and symmetric-difference counts.
 
 The default overlap scenarios are `3600/60`, `3600/300`, and `3600/900` (window width / slide, in seconds). Timing results are runtime-specific reference measurements, not general performance claims.
+## v0.2.3 CI reference result
+
+The v0.2.3 reference run used the deterministic 5,000-event synthetic stream on GitHub Actions. All scenarios preserved exact equivalence between incremental maintenance and full recomputation.
+
+| Scenario (width/slide) | Windows | Equivalent | Recompute total (ms) | Incremental total (ms) | Total speedup | Recompute median (ms) | Incremental median (ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 3600/60 | 84 | 84/84 | 367.007 | 20.838 | 17.613× | 4.821 | 0.122 |
+| 3600/300 | 17 | 17/17 | 76.301 | 14.006 | 5.448× | 4.896 | 0.293 |
+| 3600/900 | 6 | 6/6 | 28.092 | 12.909 | 2.176× | 5.288 | 1.064 |
+
+The reference run also recorded materialised fact churn and a Python object-size proxy. These timings are environment-specific and should not be interpreted as general RDF Stream Processing performance claims. The useful signal for the next version is that the relative benefit of incremental maintenance decreases as the slide grows and overlap falls.
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
