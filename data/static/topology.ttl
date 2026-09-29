@@ -1,0 +1,354 @@
+@prefix ex: <https://example.org/adaptive-kg/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+
+ex:CurrentOverload a ex:ConsumptionState .
+
+ex:Device a owl:Class .
+
+ex:HighRecentConsumption a ex:ConsumptionState .
+
+ex:Load a sosa:Property .
+
+ex:Work a sosa:Property .
+
+ex:attachedTo a owl:ObjectProperty .
+
+ex:deployedAt a owl:ObjectProperty .
+
+ex:hasState a owl:ObjectProperty .
+
+ex:house-1-household-1-plug-1-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-1-household-1-plug-1 .
+
+ex:house-1-household-1-plug-1-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-1-household-1-plug-1 .
+
+ex:house-1-household-1-plug-2-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-1-household-1-plug-2 .
+
+ex:house-1-household-1-plug-2-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-1-household-1-plug-2 .
+
+ex:house-1-household-1-plug-3-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-1-household-1-plug-3 .
+
+ex:house-1-household-1-plug-3-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-1-household-1-plug-3 .
+
+ex:house-1-household-1-plug-4-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-1-household-1-plug-4 .
+
+ex:house-1-household-1-plug-4-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-1-household-1-plug-4 .
+
+ex:house-1-household-2-plug-1-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-1-household-2-plug-1 .
+
+ex:house-1-household-2-plug-1-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-1-household-2-plug-1 .
+
+ex:house-1-household-2-plug-2-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-1-household-2-plug-2 .
+
+ex:house-1-household-2-plug-2-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-1-household-2-plug-2 .
+
+ex:house-1-household-2-plug-3-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-1-household-2-plug-3 .
+
+ex:house-1-household-2-plug-3-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-1-household-2-plug-3 .
+
+ex:house-1-household-2-plug-4-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-1-household-2-plug-4 .
+
+ex:house-1-household-2-plug-4-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-1-household-2-plug-4 .
+
+ex:house-2-household-1-plug-1-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-2-household-1-plug-1 .
+
+ex:house-2-household-1-plug-1-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-2-household-1-plug-1 .
+
+ex:house-2-household-1-plug-2-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-2-household-1-plug-2 .
+
+ex:house-2-household-1-plug-2-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-2-household-1-plug-2 .
+
+ex:house-2-household-1-plug-3-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-2-household-1-plug-3 .
+
+ex:house-2-household-1-plug-3-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-2-household-1-plug-3 .
+
+ex:house-2-household-1-plug-4-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-2-household-1-plug-4 .
+
+ex:house-2-household-1-plug-4-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-2-household-1-plug-4 .
+
+ex:house-2-household-2-plug-1-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-2-household-2-plug-1 .
+
+ex:house-2-household-2-plug-1-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-2-household-2-plug-1 .
+
+ex:house-2-household-2-plug-2-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-2-household-2-plug-2 .
+
+ex:house-2-household-2-plug-2-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-2-household-2-plug-2 .
+
+ex:house-2-household-2-plug-3-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-2-household-2-plug-3 .
+
+ex:house-2-household-2-plug-3-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-2-household-2-plug-3 .
+
+ex:house-2-household-2-plug-4-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-2-household-2-plug-4 .
+
+ex:house-2-household-2-plug-4-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-2-household-2-plug-4 .
+
+ex:house-3-household-1-plug-1-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-3-household-1-plug-1 .
+
+ex:house-3-household-1-plug-1-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-3-household-1-plug-1 .
+
+ex:house-3-household-1-plug-2-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-3-household-1-plug-2 .
+
+ex:house-3-household-1-plug-2-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-3-household-1-plug-2 .
+
+ex:house-3-household-1-plug-3-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-3-household-1-plug-3 .
+
+ex:house-3-household-1-plug-3-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-3-household-1-plug-3 .
+
+ex:house-3-household-1-plug-4-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-3-household-1-plug-4 .
+
+ex:house-3-household-1-plug-4-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-3-household-1-plug-4 .
+
+ex:house-3-household-2-plug-1-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-3-household-2-plug-1 .
+
+ex:house-3-household-2-plug-1-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-3-household-2-plug-1 .
+
+ex:house-3-household-2-plug-2-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-3-household-2-plug-2 .
+
+ex:house-3-household-2-plug-2-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-3-household-2-plug-2 .
+
+ex:house-3-household-2-plug-3-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-3-household-2-plug-3 .
+
+ex:house-3-household-2-plug-3-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-3-household-2-plug-3 .
+
+ex:house-3-household-2-plug-4-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-3-household-2-plug-4 .
+
+ex:house-3-household-2-plug-4-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-3-household-2-plug-4 .
+
+ex:house-4-household-1-plug-1-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-4-household-1-plug-1 .
+
+ex:house-4-household-1-plug-1-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-4-household-1-plug-1 .
+
+ex:house-4-household-1-plug-2-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-4-household-1-plug-2 .
+
+ex:house-4-household-1-plug-2-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-4-household-1-plug-2 .
+
+ex:house-4-household-1-plug-3-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-4-household-1-plug-3 .
+
+ex:house-4-household-1-plug-3-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-4-household-1-plug-3 .
+
+ex:house-4-household-1-plug-4-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-4-household-1-plug-4 .
+
+ex:house-4-household-1-plug-4-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-4-household-1-plug-4 .
+
+ex:house-4-household-2-plug-1-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-4-household-2-plug-1 .
+
+ex:house-4-household-2-plug-1-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-4-household-2-plug-1 .
+
+ex:house-4-household-2-plug-2-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-4-household-2-plug-2 .
+
+ex:house-4-household-2-plug-2-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-4-household-2-plug-2 .
+
+ex:house-4-household-2-plug-3-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-4-household-2-plug-3 .
+
+ex:house-4-household-2-plug-3-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-4-household-2-plug-3 .
+
+ex:house-4-household-2-plug-4-load-sensor a ex:LoadSensor ;
+    ex:attachedTo ex:house-4-household-2-plug-4 .
+
+ex:house-4-household-2-plug-4-work-sensor a ex:WorkSensor ;
+    ex:attachedTo ex:house-4-household-2-plug-4 .
+
+ex:locatedIn a owl:ObjectProperty .
+
+ex:EnergyDevice a owl:Class .
+
+ex:house-1 a ex:House .
+
+ex:house-1-household-1-plug-1 a ex:SmartPlug ;
+    ex:locatedIn ex:house-1-household-1 .
+
+ex:house-1-household-1-plug-2 a ex:SmartPlug ;
+    ex:locatedIn ex:house-1-household-1 .
+
+ex:house-1-household-1-plug-3 a ex:SmartPlug ;
+    ex:locatedIn ex:house-1-household-1 .
+
+ex:house-1-household-1-plug-4 a ex:SmartPlug ;
+    ex:locatedIn ex:house-1-household-1 .
+
+ex:house-1-household-2-plug-1 a ex:SmartPlug ;
+    ex:locatedIn ex:house-1-household-2 .
+
+ex:house-1-household-2-plug-2 a ex:SmartPlug ;
+    ex:locatedIn ex:house-1-household-2 .
+
+ex:house-1-household-2-plug-3 a ex:SmartPlug ;
+    ex:locatedIn ex:house-1-household-2 .
+
+ex:house-1-household-2-plug-4 a ex:SmartPlug ;
+    ex:locatedIn ex:house-1-household-2 .
+
+ex:house-2 a ex:House .
+
+ex:house-2-household-1-plug-1 a ex:SmartPlug ;
+    ex:locatedIn ex:house-2-household-1 .
+
+ex:house-2-household-1-plug-2 a ex:SmartPlug ;
+    ex:locatedIn ex:house-2-household-1 .
+
+ex:house-2-household-1-plug-3 a ex:SmartPlug ;
+    ex:locatedIn ex:house-2-household-1 .
+
+ex:house-2-household-1-plug-4 a ex:SmartPlug ;
+    ex:locatedIn ex:house-2-household-1 .
+
+ex:house-2-household-2-plug-1 a ex:SmartPlug ;
+    ex:locatedIn ex:house-2-household-2 .
+
+ex:house-2-household-2-plug-2 a ex:SmartPlug ;
+    ex:locatedIn ex:house-2-household-2 .
+
+ex:house-2-household-2-plug-3 a ex:SmartPlug ;
+    ex:locatedIn ex:house-2-household-2 .
+
+ex:house-2-household-2-plug-4 a ex:SmartPlug ;
+    ex:locatedIn ex:house-2-household-2 .
+
+ex:house-3 a ex:House .
+
+ex:house-3-household-1-plug-1 a ex:SmartPlug ;
+    ex:locatedIn ex:house-3-household-1 .
+
+ex:house-3-household-1-plug-2 a ex:SmartPlug ;
+    ex:locatedIn ex:house-3-household-1 .
+
+ex:house-3-household-1-plug-3 a ex:SmartPlug ;
+    ex:locatedIn ex:house-3-household-1 .
+
+ex:house-3-household-1-plug-4 a ex:SmartPlug ;
+    ex:locatedIn ex:house-3-household-1 .
+
+ex:house-3-household-2-plug-1 a ex:SmartPlug ;
+    ex:locatedIn ex:house-3-household-2 .
+
+ex:house-3-household-2-plug-2 a ex:SmartPlug ;
+    ex:locatedIn ex:house-3-household-2 .
+
+ex:house-3-household-2-plug-3 a ex:SmartPlug ;
+    ex:locatedIn ex:house-3-household-2 .
+
+ex:house-3-household-2-plug-4 a ex:SmartPlug ;
+    ex:locatedIn ex:house-3-household-2 .
+
+ex:house-4 a ex:House .
+
+ex:house-4-household-1-plug-1 a ex:SmartPlug ;
+    ex:locatedIn ex:house-4-household-1 .
+
+ex:house-4-household-1-plug-2 a ex:SmartPlug ;
+    ex:locatedIn ex:house-4-household-1 .
+
+ex:house-4-household-1-plug-3 a ex:SmartPlug ;
+    ex:locatedIn ex:house-4-household-1 .
+
+ex:house-4-household-1-plug-4 a ex:SmartPlug ;
+    ex:locatedIn ex:house-4-household-1 .
+
+ex:house-4-household-2-plug-1 a ex:SmartPlug ;
+    ex:locatedIn ex:house-4-household-2 .
+
+ex:house-4-household-2-plug-2 a ex:SmartPlug ;
+    ex:locatedIn ex:house-4-household-2 .
+
+ex:house-4-household-2-plug-3 a ex:SmartPlug ;
+    ex:locatedIn ex:house-4-household-2 .
+
+ex:house-4-household-2-plug-4 a ex:SmartPlug ;
+    ex:locatedIn ex:house-4-household-2 .
+
+ex:house-1-household-1 a ex:Household ;
+    ex:locatedIn ex:house-1 .
+
+ex:house-1-household-2 a ex:Household ;
+    ex:locatedIn ex:house-1 .
+
+ex:house-2-household-1 a ex:Household ;
+    ex:locatedIn ex:house-2 .
+
+ex:house-2-household-2 a ex:Household ;
+    ex:locatedIn ex:house-2 .
+
+ex:house-3-household-1 a ex:Household ;
+    ex:locatedIn ex:house-3 .
+
+ex:house-3-household-2 a ex:Household ;
+    ex:locatedIn ex:house-3 .
+
+ex:house-4-household-1 a ex:Household ;
+    ex:locatedIn ex:house-4 .
+
+ex:house-4-household-2 a ex:Household ;
+    ex:locatedIn ex:house-4 .
+
+ex:LoadSensor a owl:Class ;
+    rdfs:subClassOf sosa:Sensor .
+
+ex:SmartPlug a owl:Class ;
+    rdfs:subClassOf ex:EnergyDevice .
+
+ex:WorkSensor a owl:Class ;
+    rdfs:subClassOf sosa:Sensor .
+

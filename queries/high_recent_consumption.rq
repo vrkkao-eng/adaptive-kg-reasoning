@@ -1,0 +1,4 @@
+PREFIX ex: <https://example.org/adaptive-kg/>
+SELECT ?plug WHERE {
+  ?plug ex:hasState ex:HighRecentConsumption .
+}

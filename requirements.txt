@@ -1,0 +1,5 @@
+rdflib>=7.0,<8
+psutil>=5.9,<8
+pytest>=8,<10
+# Optional for a later OWL-RL comparison baseline:
+# owlrl>=7,<8

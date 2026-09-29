@@ -1,0 +1,21 @@
+@prefix ex: <https://example.org/adaptive-kg/> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:SmartPlug a owl:Class ;
+    rdfs:subClassOf ex:EnergyDevice .
+
+ex:LoadSensor a owl:Class ;
+    rdfs:subClassOf sosa:Sensor .
+
+ex:WorkSensor a owl:Class ;
+    rdfs:subClassOf sosa:Sensor .
+
+ex:locatedIn a owl:ObjectProperty .
+ex:attachedTo a owl:ObjectProperty .
+ex:deployedAt a owl:ObjectProperty .
+ex:hasState a owl:ObjectProperty .
+
+# v0.1 deliberately keeps aggregation/window rules in transparent Python code.
+# A later version can compare explicit rule languages / OWL-RL / RSP engines.
