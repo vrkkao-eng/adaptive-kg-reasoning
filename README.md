@@ -41,6 +41,22 @@ Measured outputs include:
 - explicit graph size after materialisation;
 - peak Python allocation during the materialisation step (a proxy, not total process memory).
 
+## v0.1.1 OWL-RL baseline result
+
+The committed v0.1.1 reference run uses the deterministic 5,000-event synthetic DEBS-shaped stream on GitHub Actions (Ubuntu 24.04, Python 3.12.14, RDFLib 7.6.0, owlrl 7.6.2).
+
+| Metric | Result |
+|---|---:|
+| Explicit triples | 40,229 |
+| Closure triples | 79,808 |
+| Inferred triples added | 39,579 |
+| OWL-RL closure time | 22,866.366 ms |
+| SmartPlugs entailed as `EnergyDevice` | 32 |
+| SmartPlugs entailed as `Device` | 32 |
+| LoadSensors entailed as `sosa:Sensor` | 32 |
+
+The timing is **environment-specific** and should be treated as a reproducible reference run, not a performance claim. The important v0.1.1 correctness signal is that the OWL-RL closure derives the expected class memberships without relying on the hand-written Python derivation path.
+
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:

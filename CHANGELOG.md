@@ -7,13 +7,13 @@
 - Added OWL-RL deductive closure as a separate reasoning path from Python window derivations.
 - Added tests for transitive class membership and SOSA sensor entailment.
 - Added a reproducible entailment experiment reporting closure size, inferred triples, and closure time.
+- Committed a GitHub Actions reference run: 40,229 explicit triples → 79,808 closure triples, with 39,579 inferred triples.
+- CI verification: 6 tests passed on Python 3.12.
 - Kept aggregation/window rules outside OWL-RL to avoid conflating temporal aggregation with ontology entailment.
 
 ### Scope boundary
 
 v0.1.1 does not yet implement incremental entailment, truth maintenance, formal RDF Stream Processing window semantics, or distributed reasoning.
-
-# Changelog
 
 ## v0.1.0 — baseline scaffold
 
@@ -31,4 +31,3 @@ v0.1.1 does not yet implement incremental entailment, truth maintenance, formal 
 - No formal RSP window semantics.
 - No cost-based adaptive policy yet.
 - No edge/fog/cloud placement model yet.
-- No complete OWL-RL, rule-engine, or OBDA baseline yet.
