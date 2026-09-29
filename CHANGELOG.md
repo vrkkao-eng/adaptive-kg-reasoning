@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.2.3 — comparative recomputation vs incremental benchmark
+
+- Added a per-window comparison record joining v0.2.1 recomputation and v0.2.2 incremental maintenance.
+- Added aggregate median, p95, mean, and total timing for both strategies.
+- Added per-window and total speedup ratios.
+- Added correctness metrics including symmetric difference, false additions, and missed facts.
+- Added materialised fact addition/retraction totals, affected-entity counts, and a documented Python state-size proxy.
+- Added a minimal fact-read timing proxy; it is explicitly not presented as SPARQL/RSP query latency.
+- Added default overlap scenarios `3600/60`, `3600/300`, and `3600/900`.
+- Added detailed and summary CSV outputs for reproducible reference runs.
+
+### Scope boundary
+
+v0.2.3 compares maintenance strategies for one transparent aggregate-derived state. Timing and object-size numbers are environment-specific reference measurements and are not general claims about RDF Stream Processing systems.
+
 ## v0.2.2 — incremental support-state maintenance
 
 - Added per-plug incremental support state using active-event registry, count, and total load.
@@ -42,7 +57,6 @@ v0.2.1 deliberately does not reuse prior-window state or `added` / `expired` del
 
 v0.2.0 implements window mechanics only. It does not yet implement full recomputation, incremental aggregates, fact retractions, result-equivalence benchmarking, or formal RDF Stream Processing semantics.
 
-# Changelog
 
 ## v0.1.1 — semantic entailment baseline
 

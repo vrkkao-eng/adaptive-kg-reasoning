@@ -1,6 +1,6 @@
 # adaptive-kg-reasoning
 
-**v0.2.0 — window mechanics for a research-oriented prototype on materialisation decisions in dynamic Knowledge Graph workloads.**
+**v0.2.3 — a research-oriented prototype comparing full recomputation with incremental maintenance over dynamic Knowledge Graph windows.**
 
 The core question is:
 
@@ -98,6 +98,22 @@ expire old load events
 ```
 
 Every incremental result is checked against the independent v0.2.1 full-window oracle. Any non-zero symmetric difference is treated as a correctness failure.
+## v0.2.3 comparative benchmark
+
+v0.2.3 runs the v0.2.1 full recomputation oracle and the v0.2.2 incremental maintainer on the same window sequence, then records both correctness and maintenance cost.
+
+Headline metrics include:
+
+- recomputation median / p95 / mean / total time;
+- incremental-update median / p95 / mean / total time;
+- per-window and total speedup ratios;
+- events added / expired and affected entities;
+- materialised fact additions / retractions;
+- a documented Python object-size proxy for incremental state;
+- a minimal materialised-fact readout proxy;
+- strict result equivalence and symmetric-difference counts.
+
+The default overlap scenarios are `3600/60`, `3600/300`, and `3600/900` (window width / slide, in seconds). Timing results are runtime-specific reference measurements, not general performance claims.
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
@@ -126,6 +142,7 @@ python experiments/run_v0_1_1_entailment.py --regenerate --events 5000
 python experiments/run_v0_2_windows.py --regenerate --events 5000 --width 3600 --slide 60 --flush
 python experiments/run_v0_2_recompute.py --regenerate --events 5000 --width 3600 --slide 60 --flush
 python experiments/run_v0_2_incremental.py --regenerate --events 5000 --width 3600 --slide 60 --flush
+python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
 pytest -q
 ```
 
@@ -138,6 +155,8 @@ results/entailment_v0_1_1.csv
 results/window_trace_v0_2_0.csv
 results/recompute_v0_2_1.csv
 results/incremental_v0_2_2.csv
+results/benchmark_v0_2_3_detail.csv
+results/benchmark_v0_2_3_summary.csv
 ```
 
 To test scaling:
@@ -190,7 +209,7 @@ These boundaries are deliberate: the repository is intended to make the transiti
 - **v0.2.0 complete:** deterministic sliding windows with explicit additions/expirations and boundary tests;
 - **v0.2.1 complete:** full-window recomputation oracle with per-window timing and facts;
 - **v0.2.2 complete:** incremental support-state maintenance, additions/retractions, idempotence, and strict oracle equivalence;
-- v0.2.3: comparative benchmark and aggregate metrics;
+- **v0.2.3 complete:** comparative benchmark with aggregate timing, correctness, overlap scenarios, and state/readout proxies;
 - design specification: [`docs/v0.2-design.md`](docs/v0.2-design.md).
 
 ### v0.3 — cost-aware selective materialisation

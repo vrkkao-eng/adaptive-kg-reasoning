@@ -39,3 +39,8 @@ jobs:
           python experiments/run_v0_2_incremental.py --regenerate --events 500 --width 120 --slide 30 --flush
           echo "--- incremental_v0_2_2.csv (first rows) ---"
           head -n 5 results/incremental_v0_2_2.csv
+      - name: Run v0.2.3 comparative benchmark
+        run: |
+          python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
+          echo "--- benchmark_v0_2_3_summary.csv ---"
+          cat results/benchmark_v0_2_3_summary.csv
