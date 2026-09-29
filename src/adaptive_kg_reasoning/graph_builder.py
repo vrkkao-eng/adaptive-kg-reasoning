@@ -24,6 +24,7 @@ def add_schema(graph: Graph) -> None:
         graph.add((cls, RDF.type, OWL.Class))
 
     graph.add((EX.SmartPlug, RDFS.subClassOf, EX.EnergyDevice))
+    graph.add((EX.EnergyDevice, RDFS.subClassOf, EX.Device))
     graph.add((EX.LoadSensor, RDFS.subClassOf, SOSA.Sensor))
     graph.add((EX.WorkSensor, RDFS.subClassOf, SOSA.Sensor))
 

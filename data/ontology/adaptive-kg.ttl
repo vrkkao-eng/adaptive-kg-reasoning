@@ -3,6 +3,11 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
+ex:Device a owl:Class .
+
+ex:EnergyDevice a owl:Class ;
+    rdfs:subClassOf ex:Device .
+
 ex:SmartPlug a owl:Class ;
     rdfs:subClassOf ex:EnergyDevice .
 
@@ -17,5 +22,6 @@ ex:attachedTo a owl:ObjectProperty .
 ex:deployedAt a owl:ObjectProperty .
 ex:hasState a owl:ObjectProperty .
 
-# v0.1 deliberately keeps aggregation/window rules in transparent Python code.
-# A later version can compare explicit rule languages / OWL-RL / RSP engines.
+# v0.1.1 uses this hierarchy for an OWL-RL entailment baseline.
+# Aggregation/window rules remain in transparent Python code and are not
+# presented as OWL entailments.

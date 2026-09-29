@@ -1,6 +1,6 @@
 # adaptive-kg-reasoning
 
-**v0.1 — a research-oriented learning prototype for materialisation decisions in dynamic Knowledge Graph workloads.**
+**v0.1.1 — a research-oriented learning prototype for materialisation decisions and a small OWL-RL entailment baseline in dynamic Knowledge Graph workloads.**
 
 The core question is:
 
@@ -24,6 +24,15 @@ Three strategies are benchmarked:
 2. **Query-time derivation** — store none and derive the requested class when queried.
 3. **Selective materialisation** — store stable + semi-dynamic facts; derive volatile state on demand.
 
+v0.1.1 also adds a deliberately small **semantic entailment baseline** using OWL-RL. The class hierarchy
+
+```text
+SmartPlug ⊑ EnergyDevice ⊑ Device
+LoadSensor ⊑ sosa:Sensor
+```
+
+is expanded by an OWL-RL reasoner rather than by the hand-written Python derivation functions. This keeps two concerns explicit: ontology entailment for stable semantic facts, and procedural/window aggregation for dynamic stream state.
+
 Measured outputs include:
 
 - materialisation time;
@@ -31,6 +40,22 @@ Measured outputs include:
 - number of materialised derived triples;
 - explicit graph size after materialisation;
 - peak Python allocation during the materialisation step (a proxy, not total process memory).
+
+## v0.1.1 OWL-RL baseline result
+
+The committed v0.1.1 reference run uses the deterministic 5,000-event synthetic DEBS-shaped stream on GitHub Actions (Ubuntu 24.04, Python 3.12.14, RDFLib 7.6.0, owlrl 7.6.2).
+
+| Metric | Result |
+|---|---:|
+| Explicit triples | 40,229 |
+| Closure triples | 79,808 |
+| Inferred triples added | 39,579 |
+| OWL-RL closure time | 22,866.366 ms |
+| SmartPlugs entailed as `EnergyDevice` | 32 |
+| SmartPlugs entailed as `Device` | 32 |
+| LoadSensors entailed as `sosa:Sensor` | 32 |
+
+The timing is **environment-specific** and should be treated as a reproducible reference run, not a performance claim. The important v0.1.1 correctness signal is that the OWL-RL closure derives the expected class memberships without relying on the hand-written Python derivation path.
 
 ## Data
 
@@ -56,6 +81,7 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 python experiments/run_v0_1.py --regenerate --events 5000 --repetitions 10
+python experiments/run_v0_1_1_entailment.py --regenerate --events 5000
 pytest -q
 ```
 
@@ -64,6 +90,7 @@ Outputs are written to:
 ```text
 results/benchmark_v0_1.csv
 results/benchmark_v0_1.md
+results/entailment_v0_1_1.csv
 ```
 
 To test scaling:
@@ -86,7 +113,8 @@ adaptive-kg-reasoning/
 │   ├── literature-notes.md
 │   └── research-question.md
 ├── experiments/
-│   └── run_v0_1.py
+│   ├── run_v0_1.py
+│   └── run_v0_1_1_entailment.py
 ├── queries/
 ├── results/
 ├── src/adaptive_kg_reasoning/
@@ -101,6 +129,7 @@ adaptive-kg-reasoning/
 - Its query-time strategy is a transparent targeted derivation baseline, not a full virtual Knowledge Graph implementation.
 - It does **not** yet model real edge hardware or distributed execution.
 - It does **not** treat SHACL validation as logical inference.
+- OWL-RL in v0.1.1 is a small entailment baseline, not a complete logic/stream-reasoning architecture.
 
 These boundaries are deliberate: the repository is intended to make the transition from semantic modelling to reasoning-systems research measurable and auditable.
 
