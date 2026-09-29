@@ -1,6 +1,6 @@
 # adaptive-kg-reasoning
 
-**v0.1.1 — a research-oriented learning prototype for materialisation decisions and a small OWL-RL entailment baseline in dynamic Knowledge Graph workloads.**
+**v0.2.3 — a research-oriented prototype comparing full recomputation with incremental maintenance over dynamic Knowledge Graph windows.**
 
 The core question is:
 
@@ -57,6 +57,74 @@ The committed v0.1.1 reference run uses the deterministic 5,000-event synthetic 
 
 The timing is **environment-specific** and should be treated as a reproducible reference run, not a performance claim. The important v0.1.1 correctness signal is that the OWL-RL closure derives the expected class memberships without relying on the hand-written Python derivation path.
 
+## v0.2.0 sliding-window mechanics
+
+v0.2.0 adds deterministic event-time sliding windows before any incremental reasoning is introduced. Window membership uses the half-open interval `[start, end)`: an event at `start` is included, while an event at `end` is deferred to a later window.
+
+Each transition exposes:
+
+- the active events in the current window;
+- events newly added since the preceding window;
+- events expired since the preceding window;
+- deterministic window start/end timestamps.
+
+The first implementation deliberately requires ordered event time and `slide <= width`; it does not yet handle late or out-of-order events. With `--flush`, the trace continues until every previously active event has expired, which makes event lifecycle tests auditable.
+## v0.2.1 full-window recomputation oracle
+
+v0.2.1 adds a deliberately simple reference path that recomputes `HighRecentConsumption` from the complete contents of each window. It does not reuse prior aggregates or window deltas.
+
+For every window:
+
+```text
+current window events
+→ group load observations by plug
+→ recompute count / sum / average from scratch
+→ derive HighRecentConsumption
+```
+
+This path is intended to act as the correctness oracle for v0.2.2 incremental maintenance.
+## v0.2.2 incremental maintenance
+
+v0.2.2 maintains per-plug support state across window transitions instead of recomputing every aggregate from scratch. The maintained state consists of active load-event IDs plus per-plug `count` and `total_load`.
+
+For each transition:
+
+```text
+expire old load events
++ add new load events
+→ update only affected plugs
+→ recompute affected averages
+→ add or retract HighRecentConsumption
+```
+
+Every incremental result is checked against the independent v0.2.1 full-window oracle. Any non-zero symmetric difference is treated as a correctness failure.
+## v0.2.3 comparative benchmark
+
+v0.2.3 runs the v0.2.1 full recomputation oracle and the v0.2.2 incremental maintainer on the same window sequence, then records both correctness and maintenance cost.
+
+Headline metrics include:
+
+- recomputation median / p95 / mean / total time;
+- incremental-update median / p95 / mean / total time;
+- per-window and total speedup ratios;
+- events added / expired and affected entities;
+- materialised fact additions / retractions;
+- a documented Python object-size proxy for incremental state;
+- a minimal materialised-fact readout proxy;
+- strict result equivalence and symmetric-difference counts.
+
+The default overlap scenarios are `3600/60`, `3600/300`, and `3600/900` (window width / slide, in seconds). Timing results are runtime-specific reference measurements, not general performance claims.
+## v0.2.3 CI reference result
+
+The v0.2.3 reference run used the deterministic 5,000-event synthetic stream on GitHub Actions. All scenarios preserved exact equivalence between incremental maintenance and full recomputation.
+
+| Scenario (width/slide) | Windows | Equivalent | Recompute total (ms) | Incremental total (ms) | Total speedup | Recompute median (ms) | Incremental median (ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 3600/60 | 84 | 84/84 | 367.007 | 20.838 | 17.613× | 4.821 | 0.122 |
+| 3600/300 | 17 | 17/17 | 76.301 | 14.006 | 5.448× | 4.896 | 0.293 |
+| 3600/900 | 6 | 6/6 | 28.092 | 12.909 | 2.176× | 5.288 | 1.064 |
+
+The reference run also recorded materialised fact churn and a Python object-size proxy. These timings are environment-specific and should not be interpreted as general RDF Stream Processing performance claims. The useful signal for the next version is that the relative benefit of incremental maintenance decreases as the slide grows and overlap falls.
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
@@ -82,6 +150,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python experiments/run_v0_1.py --regenerate --events 5000 --repetitions 10
 python experiments/run_v0_1_1_entailment.py --regenerate --events 5000
+python experiments/run_v0_2_windows.py --regenerate --events 5000 --width 3600 --slide 60 --flush
+python experiments/run_v0_2_recompute.py --regenerate --events 5000 --width 3600 --slide 60 --flush
+python experiments/run_v0_2_incremental.py --regenerate --events 5000 --width 3600 --slide 60 --flush
+python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
 pytest -q
 ```
 
@@ -91,6 +163,11 @@ Outputs are written to:
 results/benchmark_v0_1.csv
 results/benchmark_v0_1.md
 results/entailment_v0_1_1.csv
+results/window_trace_v0_2_0.csv
+results/recompute_v0_2_1.csv
+results/incremental_v0_2_2.csv
+results/benchmark_v0_2_3_detail.csv
+results/benchmark_v0_2_3_summary.csv
 ```
 
 To test scaling:
@@ -111,14 +188,18 @@ adaptive-kg-reasoning/
 ├── docs/
 │   ├── architecture.md
 │   ├── literature-notes.md
-│   └── research-question.md
+│   ├── research-question.md
+│   └── v0.2-design.md
 ├── experiments/
 │   ├── run_v0_1.py
-│   └── run_v0_1_1_entailment.py
+│   ├── run_v0_1_1_entailment.py
+│   └── run_v0_2_windows.py
 ├── queries/
 ├── results/
 ├── src/adaptive_kg_reasoning/
+│   └── windows.py      # deterministic sliding-window transitions
 └── tests/
+    └── test_windows.py
 ```
 
 ## What this project does **not** claim
@@ -136,10 +217,11 @@ These boundaries are deliberate: the repository is intended to make the transiti
 ## Roadmap
 
 ### v0.2 — incremental/window maintenance
-- advance the stream through repeated windows;
-- distinguish additions and expirations;
-- compare recomputation vs incremental maintenance;
-- measure maintenance cost and stale-result risk.
+- **v0.2.0 complete:** deterministic sliding windows with explicit additions/expirations and boundary tests;
+- **v0.2.1 complete:** full-window recomputation oracle with per-window timing and facts;
+- **v0.2.2 complete:** incremental support-state maintenance, additions/retractions, idempotence, and strict oracle equivalence;
+- **v0.2.3 complete:** comparative benchmark with aggregate timing, correctness, overlap scenarios, and state/readout proxies;
+- design specification: [`docs/v0.2-design.md`](docs/v0.2-design.md).
 
 ### v0.3 — cost-aware selective materialisation
 Introduce an explicit utility function using factors such as reuse frequency, update frequency, result size, and memory cost.

@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.2.3 — comparative recomputation vs incremental benchmark
+
+- Added a per-window comparison record joining v0.2.1 recomputation and v0.2.2 incremental maintenance.
+- Added aggregate median, p95, mean, and total timing for both strategies.
+- Added per-window and total speedup ratios.
+- Added correctness metrics including symmetric difference, false additions, and missed facts.
+- Added materialised fact addition/retraction totals, affected-entity counts, and a documented Python state-size proxy.
+- Added a minimal fact-read timing proxy; it is explicitly not presented as SPARQL/RSP query latency.
+- Added default overlap scenarios `3600/60`, `3600/300`, and `3600/900`.
+- Added detailed and summary CSV outputs for reproducible reference runs.
+- CI reference: 26 tests passed; all benchmark windows were equivalent to full recomputation.
+- CI total speedup was 17.613× (3600/60), 5.448× (3600/300), and 2.176× (3600/900).
+
+### Scope boundary
+
+v0.2.3 compares maintenance strategies for one transparent aggregate-derived state. Timing and object-size numbers are environment-specific reference measurements and are not general claims about RDF Stream Processing systems.
+
+## v0.2.2 — incremental support-state maintenance
+
+- Added per-plug incremental support state using active-event registry, count, and total load.
+- Added idempotent transition handling so replayed additions/expirations do not double-count.
+- Added fact additions when averages cross the threshold upward.
+- Added fact retractions when expirations or updates remove sufficient support.
+- Added strict per-window equivalence checks against the v0.2.1 full recomputation oracle.
+- Added divergence metrics: symmetric difference, false additions, and missed facts.
+- Added a reproducible incremental experiment writing `results/incremental_v0_2_2.csv`.
+
+### Scope boundary
+
+v0.2.2 maintains one transparent aggregate-derived state only. It is not a general truth-maintenance engine, arbitrary continuous SPARQL evaluator, or incremental OWL-RL reasoner.
+
+## v0.2.1 — full-window recomputation oracle
+
+- Added a reference implementation that recomputes per-plug load aggregates from the complete current window.
+- Added transparent `count`, `total_load`, and `average_load` aggregates.
+- Added `HighRecentConsumption` derivation from the recomputed window only.
+- Added per-window timing and result metrics for the oracle path.
+- Added tests for threshold behaviour, non-load filtering, empty windows, and reference metrics.
+- Added a reproducible recomputation experiment writing `results/recompute_v0_2_1.csv`.
+
+### Scope boundary
+
+v0.2.1 deliberately does not reuse prior-window state or `added` / `expired` deltas. It is the independent correctness oracle for the incremental implementation planned in v0.2.2.
+
+## v0.2.0 — deterministic sliding-window mechanics
+
+- Added an event model for the DEBS-shaped stream.
+- Added half-open sliding-window semantics: `[start, end)`.
+- Added explicit per-transition `added` and `expired` event sets.
+- Added optional flush mode so every active event can be observed expiring.
+- Added validation for duplicate IDs, out-of-order event time, invalid widths/slides, and window gaps.
+- Added property-filtered CSV loading for later load-only reasoning experiments.
+- Added a reproducible window-trace experiment.
+- Added tests for exact boundary behaviour, event lifecycle uniqueness, and transition reconstruction.
+
+### Scope boundary
+
+v0.2.0 implements window mechanics only. It does not yet implement full recomputation, incremental aggregates, fact retractions, result-equivalence benchmarking, or formal RDF Stream Processing semantics.
+
+
 ## v0.1.1 — semantic entailment baseline
 
 - Promoted `owlrl` from a planned optional dependency to an executable baseline.
