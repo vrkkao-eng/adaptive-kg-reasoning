@@ -1,12 +1,39 @@
 # adaptive-kg-reasoning
 
-**v0.2.3 — a research-oriented prototype comparing full recomputation with incremental maintenance over dynamic Knowledge Graph windows.**
+**Incremental reasoning over dynamic Knowledge Graph windows, with reproducible correctness and cost benchmarks.**
+
+[![tests](https://github.com/vrkkao-eng/adaptive-kg-reasoning/actions/workflows/tests.yml/badge.svg)](https://github.com/vrkkao-eng/adaptive-kg-reasoning/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
+![License MIT](https://img.shields.io/badge/License-MIT-green)
+![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
+
+**Current milestone: v0.2.3.** The project compares full-window recomputation with incremental support-state maintenance and checks every incremental result against an independent recomputation oracle.
+
+| Recruiter / reviewer signal | Current evidence |
+| --- | --- |
+| **Correctness** | Exact equivalence in all committed v0.2.3 benchmark windows |
+| **Measured performance** | 2.176×–17.613× total reference speedup across three overlap scenarios |
+| **Semantic reasoning** | OWL-RL entailment baseline separated from procedural window aggregation |
+| **Engineering practice** | Deterministic fixtures, pytest regression tests, CI benchmarks, committed result artifacts |
+| **Research discipline** | Explicit limitations; environment-specific timings are not presented as general performance claims |
 
 The core question is:
 
 > **When is an inferred fact worth materialising?**
 
 This repository is a technical bridge from ontology / Knowledge Graph engineering toward stream reasoning, query processing, and efficient semantic systems. It deliberately starts with a small reproducible experiment rather than claiming to implement a production RDF Stream Processing engine.
+
+## Quick verification
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pytest -q
+python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
+```
+
+The benchmark writes detailed and summary CSV artifacts under `results/`. Reference timings below come from GitHub Actions and are intended for reproducibility, not as hardware-independent claims.
 
 ## What v0.1 tests
 
