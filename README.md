@@ -7,7 +7,7 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.3.0.** The project compares fixed recomputation, query-time derivation, incremental maintenance and a cost-aware adaptive policy on identical dynamic-KG workloads. Every query answer and maintained state is checked against full recomputation. v0.2.4 evidence bundles preserve input, configuration, environment and source fingerprints.
+**Current milestone: v0.4.0.** The project compares materialisation strategies on identical dynamic-KG workloads and now simulates fixed edge/fog/cloud placement under declared resource and network constraints. A budget-aware selector uses workload estimates before reading the evaluation stream. Reference answers and states are checked against full recomputation; hashed evidence bundles preserve the experiment. This is a code milestone, not a claim of a published release or distributed deployment.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
@@ -16,6 +16,7 @@
 | **Semantic reasoning** | OWL-RL entailment baseline separated from procedural window aggregation |
 | **Engineering practice** | Deterministic fixtures, pytest regression tests, CI benchmarks, per-run manifests and downloadable artifacts |
 | **Adaptive decisions** | Prior-demand policy, explicit bootstrap/switch costs, dense/sparse/bursty/idle comparisons; model units separate from timings |
+| **Resource-aware placement** | Three fixed baselines, estimate-only selection, explicit budget failures and byte/RTT accounting; simulated milliseconds separate from host measurements |
 | **Research discipline** | Explicit limitations; environment-specific timings are not presented as general performance claims |
 
 The core question is:
@@ -41,6 +42,7 @@ pip install -r requirements.txt
 pytest -q
 python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
 python experiments/run_v0_3_policy.py --events 5000 --repetitions 3
+python experiments/run_v0_4_placement.py --events 1000 --scenarios 120:30,120:120 --flush
 ```
 
 The comparative benchmark writes `input.csv`, `detail.csv`, `summary.csv` and `manifest.json` under a new `results/runs/<run_id>/` directory. See [reproduction and replay](docs/reproducibility.md). Committed v0.2.3 timings below remain historical GitHub Actions results, not new v0.2.4 measurements or hardware-independent claims.
@@ -162,6 +164,33 @@ The v0.2.3 reference run used the deterministic 5,000-event synthetic stream on 
 | 3600/900 | 6 | 6/6 | 28.092 | 12.909 | 2.176× | 5.288 | 1.064 |
 
 The reference run also recorded materialised fact churn and a Python object-size proxy. These timings are environment-specific and should not be interpreted as general RDF Stream Processing performance claims. The useful signal for the next version is that the relative benefit of incremental maintenance decreases as the slide grows and overlap falls.
+## v0.4.0 resource-aware placement
+
+The operational question is now: **where should the same maintained state run,
+given memory limits and the cost of moving events and query results?**
+
+The experiment compares `fixed_edge`, `fixed_fog`, `fixed_cloud` and
+`budget_aware`. It keeps incremental maintenance fixed so placement effects are
+not confused with changes in reasoning strategy. Three declared planning
+scenarios select different sites; the same evaluation stream is then used to
+test those decisions, including forecast errors.
+
+```bash
+python experiments/run_v0_4_placement.py --events 5000 --flush --output-dir results/runs/placement-example
+```
+
+Inspect `planning.csv` for the decision and rejected candidates, `summary.csv`
+for feasibility and completed/partial modeled costs, and `reference.csv` for
+oracle checks and measured host timings. `budget_aware` references its chosen
+fixed baseline; it is not another distributed execution. A budget violation
+stops simulated service with explicit unserved queries, not a hidden fallback.
+
+Profiles are illustrative, not hardware calibrations. Memory is a declared
+logical retained-state model, not process RSS. Simulated total milliseconds
+represent additive service demand, not measured end-to-end latency. See the
+[v0.4 accounting contract and limitations](docs/v0.4-design.md) and
+[replay instructions](docs/reproducibility.md).
+
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
@@ -219,6 +248,8 @@ python experiments/run_v0_1.py --regenerate --events 100000 --repetitions 20
 
 ```text
 adaptive-kg-reasoning/
+├── configs/
+│   └── placement_profiles.json
 ├── data/
 │   ├── raw/          # synthetic DEBS-shaped base stream
 │   ├── ontology/     # small application ontology
@@ -230,6 +261,7 @@ adaptive-kg-reasoning/
 │   ├── research-question.md
 │   ├── v0.2-design.md
 │   ├── v0.3-design.md
+│   ├── v0.4-design.md
 │   ├── reproducibility.md
 │   └── technical-review.md
 ├── experiments/
@@ -239,7 +271,8 @@ adaptive-kg-reasoning/
 │   ├── run_v0_2_recompute.py
 │   ├── run_v0_2_incremental.py
 │   ├── run_v0_2_benchmark.py
-│   └── run_v0_3_policy.py
+│   ├── run_v0_3_policy.py
+│   └── run_v0_4_placement.py
 ├── queries/
 ├── results/
 ├── src/adaptive_kg_reasoning/
@@ -249,6 +282,9 @@ adaptive-kg-reasoning/
 │   ├── metrics.py      # comparative measurement
 │   ├── evidence.py     # run manifests and fingerprints
 │   ├── adaptive.py     # cost-aware policy and aligned strategy benchmark
+│   ├── resources.py    # validated resource and workload estimates
+│   ├── network_cost.py # direct-link RTT and payload accounting
+│   ├── placement.py    # fixed-site planning and modeled evaluation
 │   └── ...             # RDF mapping, entailment, v0.1 strategies
 └── tests/
     ├── test_windows.py
@@ -264,7 +300,7 @@ adaptive-kg-reasoning/
 - It is **not** a complete OBDA or SPARQL query-rewriting system.
 - It does **not** propose a novel reasoning algorithm in v0.1.
 - Its query-time strategy is a transparent targeted derivation baseline, not a full virtual Knowledge Graph implementation.
-- It does **not** yet model real edge hardware or distributed execution.
+- Its v0.4 profiles do **not** represent calibrated edge hardware or real distributed execution.
 - It does **not** treat SHACL validation as logical inference.
 - OWL-RL in v0.1.1 is a small entailment baseline, not a complete logic/stream-reasoning architecture.
 
@@ -288,7 +324,18 @@ release and policy overhead separately. Adaptive performance is measured, not
 assumed. See [design, limitations and replay](docs/v0.3-design.md).
 
 ### v0.4 — edge/fog/cloud placement simulation
-Add resource budgets and network RTT/transfer costs, then ask both **what** to materialise and **where** to place it.
+Implemented: resource budgets, network RTT/transfer accounting, fixed-site
+baselines and estimate-only selection. v0.3 asks **what** to materialise; v0.4
+isolates **where** by holding the incremental strategy constant. Joint strategy
+and placement optimization remains future work. See [v0.4 design](docs/v0.4-design.md).
+
+### v0.5 — proposed reliability evidence
+
+Build on the explicit v0.4 failure states with a separately specified recovery
+contract, checkpoint/replay tests and fault-injection evidence. Scope and
+acceptance criteria must be agreed before implementation; these features are
+not present in v0.4. No separate thesis application or agent stack is required
+for this repository's current engineering path.
 
 ### Later validation
 - run an established RSP workload (e.g. CityBench);

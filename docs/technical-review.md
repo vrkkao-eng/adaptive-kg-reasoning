@@ -13,6 +13,9 @@ This page maps likely review questions to the implementation and benchmark evide
 | **What would invalidate the current conclusion?** | Different overlap, churn, entity counts, threshold-crossing frequency, late/out-of-order events or a different runtime may erase the measured benefit. Those are experimental factors, not hidden assumptions. | [v0.2 design](v0.2-design.md) |
 | **How is adaptive selection evaluated?** | Four strategies share input, windows and request schedules. Selection sees only prior demand; bootstrap, release and decision costs are included. Model units and measured time remain separate. | [v0.3 design](v0.3-design.md), [policy tests](../tests/test_adaptive.py) |
 | **How can I trace a result to its execution?** | Every new benchmark run records configuration, source/input/artifact hashes and environment. CI retains bundles, including on failure. | [reproducibility](reproducibility.md) |
+| **Does placement use future evaluation data?** | No. A fixed decision is persisted from declared estimates before loading the evaluation stream. Underestimation may make the chosen node infeasible; there is no hindsight fallback. | [v0.4 design](v0.4-design.md), [placement tests](../tests/test_placement.py) |
+| **Are edge/cloud latency and memory physically measured?** | No. Node and direct-link profiles model service demand and logical retained state. Measured reference timings are labeled separately; no distributed deployment or hardware calibration is claimed. | [placement accounting](v0.4-design.md), [profile](../configs/placement_profiles.json) |
+| **Can failure appear as a cheap successful execution?** | Completed-prefix cost is separate from total cost. Incomplete placements have a null total, explicit failure window and unserved queries. | [placement tests](../tests/test_placement.py), [CLI/replay tests](../tests/test_placement_cli.py) |
 
 ## Core invariant
 

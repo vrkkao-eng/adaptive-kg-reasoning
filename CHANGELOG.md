@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.4.0 — resource-aware fixed placement simulation
+
+- Compare fixed edge, fog and cloud placement with a budget-aware, estimate-only selector.
+- Hold incremental reasoning semantics constant to isolate placement effects.
+- Model node compute, logical retained-memory budgets, direct-link RTT and byte transfer costs with explicit units.
+- Persist planning decisions before reading the evaluation stream; reject invalid profiles and record no-feasible-candidate outcomes.
+- Stop simulated service at the first memory-budget violation, expose unserved queries and keep partial costs separate from completed totals.
+- Verify a shared reference trace against full recomputation; keep measured host timings separate from simulated service demand.
+- Preserve profiles, planning, actual payload counts, workload schedules and hashed evidence for deterministic replay.
+- Add hand-calculated accounting, underestimation, failure, replay and CI smoke tests; document the simulator's limits in English.
+- No distributed deployment, runtime migration, agent/LLM integration or thesis application is introduced.
+
 ## v0.3.0 — cost-aware materialisation experiment
 
 - Align recomputation, query-time, incremental and adaptive strategies on identical window/query workloads.

@@ -35,7 +35,7 @@ def write_csv(path: Path, rows: list[dict]) -> None:
 
 def source_identity(root: Path) -> dict:
     files = []
-    for name in ("src", "experiments", "tests", "docs", ".github", "queries", "data/ontology"):
+    for name in ("src", "experiments", "tests", "docs", ".github", "queries", "data/ontology", "configs"):
         files.extend(p for p in (root / name).rglob("*")
                      if p.is_file() and "__pycache__" not in p.parts)
     files.extend(root / name for name in ("README.md", "CHANGELOG.md", "requirements.txt"))

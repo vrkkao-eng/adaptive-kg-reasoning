@@ -1,4 +1,4 @@
-# Architecture — v0.1 through v0.3
+# Architecture — v0.1 through v0.4
 
 ## Current execution path
 
@@ -18,6 +18,27 @@ The adaptive policy predicts demand from the previous window only and can releas
 or rebuild incremental state. The harness keeps oracle work outside strategy
 timings. [v0.3 design](v0.3-design.md) specifies cost accounting and scope;
 [v0.2 design](v0.2-design.md) specifies window and maintenance semantics.
+
+## v0.4 placement path
+
+```text
+declared profiles + workload estimates -> fixed-site decision + planning.csv
+                                                       |
+evaluation stream -> shared incremental/oracle trace    |
+                             |                         |
+                   edge / fog / cloud cost models      |
+                             |                         |
+                  fixed-site outcomes <--- selected baseline reference
+                             |
+                feasibility + partial/complete costs + evidence
+```
+
+Planning precedes loading evaluation data. `resources.py` validates profiles and
+logical-memory estimates; `network_cost.py` accounts for direct-link service
+demand; `placement.py` checks a shared reference trace and evaluates fixed sites.
+No node executes remotely. Host measurements and modeled milliseconds remain
+separate. Budget violations stop modeled service without migration or recovery.
+See the [v0.4 accounting contract](v0.4-design.md).
 
 ## Original v0.1 baseline
 
