@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.3.0 — cost-aware materialisation experiment
+
+- Align recomputation, query-time, incremental and adaptive strategies on identical window/query workloads.
+- Add a prior-demand policy with explicit event, result-read, retention and switching cost coefficients.
+- Charge full bootstrap after query-time mode; include measured selection and release costs.
+- Keep synthetic model units separate from measured milliseconds and the retained-state memory proxy.
+- Check every answer and maintained state against full recomputation, including expiration and threshold boundaries.
+- Add idle/sparse/dense/bursty workloads, repeated runs with seeded strategy order, decision traces and CI smoke coverage.
+- Preserve v0.2 benchmark history and the original v0.4 placement direction; no agent/LLM or thesis application scope.
+
+## v0.2.4 — reproducible benchmark evidence
+
+- Preserve the existing oracle and incremental comparison; write fresh run bundles instead of overwriting v0.2.3 references.
+- Record input/artifact/source hashes, actual event count, configuration, environment and available Git identity.
+- Retain failed-run manifests and reject empty input/output-directory reuse.
+- Upload CI benchmark bundles and JUnit results, including on failure.
+- Correct evidence links and the implemented module map; document replay and version/publication boundaries.
+
 ## v0.2.3 — comparative recomputation vs incremental benchmark
 
 - Added a per-window comparison record joining v0.2.1 recomputation and v0.2.2 incremental maintenance.

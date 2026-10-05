@@ -1,4 +1,25 @@
-# Architecture — v0.1
+# Architecture — v0.1 through v0.3
+
+## Current execution path
+
+```text
+deterministic load events -> shared sliding windows + request schedule
+                                      |
+           recompute / query-time / incremental / adaptive
+                                      |
+                    full-result queries + state checks
+                                      |
+       independent oracle equivalence + measured component costs
+                                      |
+               CSV trace/summary + hashed run manifest
+```
+
+The adaptive policy predicts demand from the previous window only and can release
+or rebuild incremental state. The harness keeps oracle work outside strategy
+timings. [v0.3 design](v0.3-design.md) specifies cost accounting and scope;
+[v0.2 design](v0.2-design.md) specifies window and maintenance semantics.
+
+## Original v0.1 baseline
 
 ```text
 synthetic DEBS-shaped CSV

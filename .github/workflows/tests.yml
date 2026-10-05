@@ -2,13 +2,18 @@ name: tests
 
 on:
   push:
-    branches: [main, "v0.*"]
+    branches: [main, "v0.*", "codex/**"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run tests
-        run: pytest -q
+        run: pytest -q --junitxml=results/runs/tests.xml
       - name: Run v0.1.1 entailment benchmark
         run: |
           python experiments/run_v0_1_1_entailment.py --regenerate --events 5000
@@ -39,8 +44,17 @@ jobs:
           python experiments/run_v0_2_incremental.py --regenerate --events 500 --width 120 --slide 30 --flush
           echo "--- incremental_v0_2_2.csv (first rows) ---"
           head -n 5 results/incremental_v0_2_2.csv
-      - name: Run v0.2.3 comparative benchmark
+      - name: Run v0.2.4 comparative benchmark evidence bundle
         run: |
-          python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
-          echo "--- benchmark_v0_2_3_summary.csv ---"
-          cat results/benchmark_v0_2_3_summary.csv
+          python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900 --output-dir results/runs/v024
+          cat results/runs/v024/summary.csv
+      - name: Run v0.3 cost-aware policy comparison
+        run: python experiments/run_v0_3_policy.py --events 1000 --scenarios 120:30,120:120 --repetitions 2 --flush --output-dir results/runs/v030
+      - name: Preserve benchmark evidence and test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          path: results/runs/
+          if-no-files-found: error
+          retention-days: 30
