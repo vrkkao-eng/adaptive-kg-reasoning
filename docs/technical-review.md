@@ -11,7 +11,8 @@ This page maps likely review questions to the implementation and benchmark evide
 | **Why use Python rather than Kafka/Flink/Spark?** | v0.2 is an experiment about maintenance cost and correctness. Keeping window transitions and support state explicit makes the comparison auditable before introducing infrastructure whose own costs would confound the baseline. | [architecture](architecture.md), [v0.2 design](v0.2-design.md) |
 | **What is semantic reasoning vs procedural aggregation here?** | OWL-RL provides a small entailment baseline for stable class semantics; dynamic averages/window state are maintained procedurally. The project does not mislabel SHACL or aggregation as logical inference. | README v0.1.1 section and architecture docs |
 | **What would invalidate the current conclusion?** | Different overlap, churn, entity counts, threshold-crossing frequency, late/out-of-order events or a different runtime may erase the measured benefit. Those are experimental factors, not hidden assumptions. | [v0.2 design](v0.2-design.md) |
-| **What is the next research/engineering step?** | Use the measured maintenance-cost term as one input to an adaptive materialisation policy; do not assume incremental maintenance is always preferable. | v0.2 design “Link to later versions” |
+| **How is adaptive selection evaluated?** | Four strategies share input, windows and request schedules. Selection sees only prior demand; bootstrap, release and decision costs are included. Model units and measured time remain separate. | [v0.3 design](v0.3-design.md), [policy tests](../tests/test_adaptive.py) |
+| **How can I trace a result to its execution?** | Every new benchmark run records configuration, source/input/artifact hashes and environment. CI retains bundles, including on failure. | [reproducibility](reproducibility.md) |
 
 ## Core invariant
 

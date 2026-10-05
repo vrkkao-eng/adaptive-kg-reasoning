@@ -7,19 +7,26 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.2.4.** The project compares full-window recomputation with incremental support-state maintenance and checks every incremental result against an independent recomputation oracle. Each new comparative run produces an isolated evidence bundle with input, configuration, environment and source fingerprints.
+**Current milestone: v0.3.0.** The project compares fixed recomputation, query-time derivation, incremental maintenance and a cost-aware adaptive policy on identical dynamic-KG workloads. Every query answer and maintained state is checked against full recomputation. v0.2.4 evidence bundles preserve input, configuration, environment and source fingerprints.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
 | **Correctness** | Exact equivalence in all committed v0.2.3 benchmark windows |
 | **Measured performance** | 2.176×–17.613× total reference speedup across three overlap scenarios |
 | **Semantic reasoning** | OWL-RL entailment baseline separated from procedural window aggregation |
-| **Engineering practice** | Deterministic fixtures, pytest regression tests, CI benchmarks, committed result artifacts |
+| **Engineering practice** | Deterministic fixtures, pytest regression tests, CI benchmarks, per-run manifests and downloadable artifacts |
+| **Adaptive decisions** | Prior-demand policy, explicit bootstrap/switch costs, dense/sparse/bursty/idle comparisons; model units separate from timings |
 | **Research discipline** | Explicit limitations; environment-specific timings are not presented as general performance claims |
 
 The core question is:
 
 > **When is an inferred fact worth materialising?**
+
+The operational problem is a changing knowledge graph serving repeated requests:
+maintaining derived facts costs updates and memory; deriving them on demand costs
+query work. Success means preserving exact results while exposing that trade-off,
+including cases where adaptive selection loses. Start with the
+[v0.3 experiment and cost-accounting contract](docs/v0.3-design.md).
 
 This repository is a technical bridge from ontology / Knowledge Graph engineering toward stream reasoning, query processing, and efficient semantic systems. It deliberately starts with a small reproducible experiment rather than claiming to implement a production RDF Stream Processing engine.
 
@@ -33,6 +40,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 pytest -q
 python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
+python experiments/run_v0_3_policy.py --events 5000 --repetitions 3
 ```
 
 The comparative benchmark writes `input.csv`, `detail.csv`, `summary.csv` and `manifest.json` under a new `results/runs/<run_id>/` directory. See [reproduction and replay](docs/reproducibility.md). Committed v0.2.3 timings below remain historical GitHub Actions results, not new v0.2.4 measurements or hardware-independent claims.
@@ -221,6 +229,7 @@ adaptive-kg-reasoning/
 │   ├── literature-notes.md
 │   ├── research-question.md
 │   ├── v0.2-design.md
+│   ├── v0.3-design.md
 │   ├── reproducibility.md
 │   └── technical-review.md
 ├── experiments/
@@ -229,7 +238,8 @@ adaptive-kg-reasoning/
 │   ├── run_v0_2_windows.py
 │   ├── run_v0_2_recompute.py
 │   ├── run_v0_2_incremental.py
-│   └── run_v0_2_benchmark.py
+│   ├── run_v0_2_benchmark.py
+│   └── run_v0_3_policy.py
 ├── queries/
 ├── results/
 ├── src/adaptive_kg_reasoning/
@@ -238,6 +248,7 @@ adaptive-kg-reasoning/
 │   ├── incremental.py  # support-state maintenance
 │   ├── metrics.py      # comparative measurement
 │   ├── evidence.py     # run manifests and fingerprints
+│   ├── adaptive.py     # cost-aware policy and aligned strategy benchmark
 │   └── ...             # RDF mapping, entailment, v0.1 strategies
 └── tests/
     ├── test_windows.py
@@ -270,7 +281,11 @@ These boundaries are deliberate: the repository is intended to make the transiti
 - design specification: [`docs/v0.2-design.md`](docs/v0.2-design.md).
 
 ### v0.3 — cost-aware selective materialisation
-Introduce an explicit utility function using factors such as reuse frequency, update frequency, result size, and memory cost.
+Implemented for one derived state: an explicit synthetic utility model using prior
+query demand, event updates, last observed result size and retention cost. Compare
+four strategies on identical windows and request schedules; count bootstrap,
+release and policy overhead separately. Adaptive performance is measured, not
+assumed. See [design, limitations and replay](docs/v0.3-design.md).
 
 ### v0.4 — edge/fog/cloud placement simulation
 Add resource budgets and network RTT/transfer costs, then ask both **what** to materialise and **where** to place it.

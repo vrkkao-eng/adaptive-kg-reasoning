@@ -48,6 +48,8 @@ jobs:
         run: |
           python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900 --output-dir results/runs/v024
           cat results/runs/v024/summary.csv
+      - name: Run v0.3 cost-aware policy comparison
+        run: python experiments/run_v0_3_policy.py --events 1000 --scenarios 120:30,120:120 --repetitions 2 --flush --output-dir results/runs/v030
       - name: Preserve benchmark evidence and test report
         if: always()
         uses: actions/upload-artifact@v4
