@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.4 — reproducible benchmark evidence
+
+- Preserve the existing oracle and incremental comparison; write fresh run bundles instead of overwriting v0.2.3 references.
+- Record input/artifact/source hashes, actual event count, configuration, environment and available Git identity.
+- Retain failed-run manifests and reject empty input/output-directory reuse.
+- Upload CI benchmark bundles and JUnit results, including on failure.
+- Correct evidence links and the implemented module map; document replay and version/publication boundaries.
+
 ## v0.2.3 — comparative recomputation vs incremental benchmark
 
 - Added a per-window comparison record joining v0.2.1 recomputation and v0.2.2 incremental maintenance.

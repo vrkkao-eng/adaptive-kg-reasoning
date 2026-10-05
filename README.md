@@ -7,7 +7,7 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.2.3.** The project compares full-window recomputation with incremental support-state maintenance and checks every incremental result against an independent recomputation oracle.
+**Current milestone: v0.2.4.** The project compares full-window recomputation with incremental support-state maintenance and checks every incremental result against an independent recomputation oracle. Each new comparative run produces an isolated evidence bundle with input, configuration, environment and source fingerprints.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
@@ -35,7 +35,7 @@ pytest -q
 python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
 ```
 
-The benchmark writes detailed and summary CSV artifacts under `results/`. Reference timings below come from GitHub Actions and are intended for reproducibility, not as hardware-independent claims.
+The comparative benchmark writes `input.csv`, `detail.csv`, `summary.csv` and `manifest.json` under a new `results/runs/<run_id>/` directory. See [reproduction and replay](docs/reproducibility.md). Committed v0.2.3 timings below remain historical GitHub Actions results, not new v0.2.4 measurements or hardware-independent claims.
 
 ## What v0.1 tests
 
@@ -195,8 +195,10 @@ results/entailment_v0_1_1.csv
 results/window_trace_v0_2_0.csv
 results/recompute_v0_2_1.csv
 results/incremental_v0_2_2.csv
-results/benchmark_v0_2_3_detail.csv
-results/benchmark_v0_2_3_summary.csv
+results/runs/<run_id>/detail.csv
+results/runs/<run_id>/summary.csv
+results/runs/<run_id>/manifest.json
+results/runs/<run_id>/input.csv
 ```
 
 To test scaling:
@@ -212,23 +214,37 @@ adaptive-kg-reasoning/
 ├── data/
 │   ├── raw/          # synthetic DEBS-shaped base stream
 │   ├── ontology/     # small application ontology
-│   ├── static/       # reserved for exported static KG snapshots
-│   └── streams/      # reserved for later windowed stream fixtures
+│   ├── static/       # exported static topology fixture
+│   └── streams/      # exported stream fixture
 ├── docs/
 │   ├── architecture.md
 │   ├── literature-notes.md
 │   ├── research-question.md
-│   └── v0.2-design.md
+│   ├── v0.2-design.md
+│   ├── reproducibility.md
+│   └── technical-review.md
 ├── experiments/
 │   ├── run_v0_1.py
 │   ├── run_v0_1_1_entailment.py
-│   └── run_v0_2_windows.py
+│   ├── run_v0_2_windows.py
+│   ├── run_v0_2_recompute.py
+│   ├── run_v0_2_incremental.py
+│   └── run_v0_2_benchmark.py
 ├── queries/
 ├── results/
 ├── src/adaptive_kg_reasoning/
-│   └── windows.py      # deterministic sliding-window transitions
+│   ├── windows.py      # deterministic sliding-window transitions
+│   ├── recompute.py    # independent correctness oracle
+│   ├── incremental.py  # support-state maintenance
+│   ├── metrics.py      # comparative measurement
+│   ├── evidence.py     # run manifests and fingerprints
+│   └── ...             # RDF mapping, entailment, v0.1 strategies
 └── tests/
-    └── test_windows.py
+    ├── test_windows.py
+    ├── test_recompute.py
+    ├── test_incremental.py
+    ├── test_metrics.py
+    └── ...
 ```
 
 ## What this project does **not** claim
@@ -250,6 +266,7 @@ These boundaries are deliberate: the repository is intended to make the transiti
 - **v0.2.1 complete:** full-window recomputation oracle with per-window timing and facts;
 - **v0.2.2 complete:** incremental support-state maintenance, additions/retractions, idempotence, and strict oracle equivalence;
 - **v0.2.3 complete:** comparative benchmark with aggregate timing, correctness, overlap scenarios, and state/readout proxies;
+- **v0.2.4:** isolated run evidence, replay instructions, CI artifacts and corrected reviewer navigation;
 - design specification: [`docs/v0.2-design.md`](docs/v0.2-design.md).
 
 ### v0.3 — cost-aware selective materialisation
