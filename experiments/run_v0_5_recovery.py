@@ -11,11 +11,13 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from adaptive_kg_reasoning import __version__
 from adaptive_kg_reasoning.adaptive import query_schedule
 from adaptive_kg_reasoning.evidence import create_run_dir, new_manifest, save_manifest, write_csv
 from adaptive_kg_reasoning.generate_data import generate_debs_shaped_csv
 from adaptive_kg_reasoning.placement import load_config
 from adaptive_kg_reasoning.recovery import FaultSpec, POLICIES, benchmark_recovery
+from adaptive_kg_reasoning.recovery_acceptance import validate_recovery_matrix
 from adaptive_kg_reasoning.windows import iter_sliding_windows, load_events
 
 
@@ -35,6 +37,8 @@ def main():
     parser.add_argument("--checkpoint-every", type=int, default=2)
     parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--flush", action="store_true")
+    parser.add_argument("--require-expected-outcomes", action="store_true",
+                        help="Fail unless every feasible-fixture case meets the service/accounting contract")
     parser.add_argument("--output-dir", type=Path)
     args = parser.parse_args()
     if args.events <= 0 or not math.isfinite(args.threshold):
@@ -43,7 +47,8 @@ def main():
     config = {**vars(args), "input": str(args.input) if args.input else None,
               "profiles": str(args.profiles), "output_dir": str(run_dir),
               "generated": args.input is None, "generator_seed": args.seed if args.input is None else None}
-    manifest = new_manifest(ROOT, run_dir, benchmark="v0.5.0", config=config)
+    manifest = new_manifest(ROOT, run_dir, benchmark=f"v{__version__}", config=config)
+    manifest["acceptance_status"] = "pending" if args.require_expected_outcomes else "not_requested"
     try:
         run(args, run_dir, manifest)
         manifest["status"] = "passed"
@@ -105,6 +110,13 @@ def run(args, run_dir, manifest):
     manifest.update(recovery_outcomes=outcomes,
                     checked_states=sum(row["checked_states"] for row in summaries),
                     checked_queries=sum(row["checked_queries"] for row in summaries))
+    if args.require_expected_outcomes:
+        report = validate_recovery_matrix(summaries, details, audits, schedules=schedules,
+                                          specs=specs, max_retries=args.max_retries)
+        (run_dir / "acceptance.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        manifest["acceptance_status"] = report["status"]
+        if report["status"] != "passed":
+            raise AssertionError("Recovery acceptance failed; inspect acceptance.json and retained outcomes")
     print(f"passed: {len(summaries)} recovery summaries; outcomes={outcomes}; "
           f"{manifest['checked_queries']} served queries checked; evidence={run_dir}")
 

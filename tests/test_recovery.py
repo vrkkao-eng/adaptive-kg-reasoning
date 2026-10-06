@@ -1,4 +1,3 @@
-from dataclasses import replace
 import hashlib
 import json
 from pathlib import Path
@@ -11,6 +10,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from adaptive_kg_reasoning import checkpoint, recovery
 from adaptive_kg_reasoning.checkpoint import CheckpointError, canonical_bytes, load_checkpoint, save_checkpoint
 from adaptive_kg_reasoning.incremental import IncrementalHighRecentState
+from adaptive_kg_reasoning.recompute import recompute_window
 from adaptive_kg_reasoning.recovery import FaultSpec, POLICIES, benchmark_recovery, trace_identity
 from adaptive_kg_reasoning.resources import MemoryModel, NodeProfile
 from adaptive_kg_reasoning.windows import StreamEvent, iter_sliding_windows
@@ -229,3 +229,88 @@ def test_invalid_cadence_and_fault_window_rejected(tmp_path):
         run(tmp_path, fault=FaultSpec(1, "after_checkpoint"))
     with pytest.raises(ValueError):
         FaultSpec(1, "unknown")
+
+
+@pytest.mark.parametrize("mutation", ["count", "bool_count", "float_count", "total", "nan", "infinity",
+                                      "bool_total", "missing", "extra"])
+def test_live_state_support_corruption_is_rejected(mutation):
+    window = fixture_windows()[0]
+    state = IncrementalHighRecentState()
+    state.apply(window)
+    plug, aggregate = next(iter(state.aggregates.items()))
+    if mutation == "count":
+        aggregate.count += 1
+    elif mutation == "bool_count":
+        aggregate.count = True
+    elif mutation == "float_count":
+        aggregate.count = float(aggregate.count)
+    elif mutation == "total":
+        aggregate.total_load = 0.
+    elif mutation in ("nan", "infinity"):
+        aggregate.total_load = float("nan" if mutation == "nan" else "inf")
+    elif mutation == "bool_total":
+        aggregate.total_load = True
+    elif mutation == "missing":
+        del state.aggregates[plug]
+    else:
+        state.aggregates[plug + "-extra"] = aggregate
+    # The event registry and cached answer are unchanged: fact-only checks miss this.
+    with pytest.raises(AssertionError, match="diverges"):
+        recovery.check_state(state, window, recompute_window(window))
+
+
+@pytest.mark.parametrize("policy", ["stop_on_failure", "cold_rebuild"])
+def test_non_checkpoint_paths_reject_corrupt_support(tmp_path, monkeypatch, policy):
+    original = IncrementalHighRecentState.apply
+    def corrupt(self, window):
+        result = original(self, window)
+        next(iter(self.aggregates.values())).total_load = 0.
+        return result
+    monkeypatch.setattr(IncrementalHighRecentState, "apply", corrupt)
+    with pytest.raises(AssertionError, match="diverges"):
+        run(tmp_path, policy)
+
+
+def test_live_state_roundoff_and_empty_expiration():
+    state = IncrementalHighRecentState()
+    for window in fixture_windows():
+        state.apply(window)
+        if state.aggregates:
+            next(iter(state.aggregates.values())).total_load += 1e-10
+        recovery.check_state(state, window, recompute_window(window))
+    assert not state.aggregates
+
+
+def test_restore_checks_support_against_reference_even_after_decoding(tmp_path, monkeypatch):
+    original = recovery.load_checkpoint
+    def corrupt(*args, **kwargs):
+        state, cursor = original(*args, **kwargs)
+        next(iter(state.aggregates.values())).total_load = 0.
+        return state, cursor
+    monkeypatch.setattr(recovery, "load_checkpoint", corrupt)
+    _, summary, audit = run(tmp_path, fault=FaultSpec(2, "after_update"))
+    assert summary["status"] == "checkpoint_rejected"
+    assert summary["served_queries"] == 4
+    assert "does not match cursor" in audit[-1]["error"]
+
+
+def test_tolerated_total_drift_cannot_hide_a_threshold_crossing():
+    window = fixture_windows()[0]
+    state = IncrementalHighRecentState(threshold_watts=450.)
+    state.apply(window)
+    next(iter(state.aggregates.values())).total_load -= 1e-10
+    with pytest.raises(AssertionError, match="facts"):
+        recovery.check_state(state, window, recompute_window(window, threshold_watts=450.))
+
+
+def test_precomputed_support_oracle_is_used_during_restore(tmp_path, monkeypatch):
+    original = recovery.aggregate_window_loads
+    calls = 0
+    def counted(events):
+        nonlocal calls
+        calls += 1
+        return original(events)
+    monkeypatch.setattr(recovery, "aggregate_window_loads", counted)
+    _, summary, _ = run(tmp_path, fault=FaultSpec(2, "after_update"))
+    assert summary["status"] == "recovered"
+    assert calls == len(fixture_windows())  # No oracle recomputation in restore timing.

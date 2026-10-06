@@ -14,6 +14,9 @@ from rdflib import URIRef
 from .incremental import IncrementalHighRecentState, MutablePlugState
 from .namespaces import EX
 
+SUPPORT_REL_TOL = 1e-12
+SUPPORT_ABS_TOL = 1e-7
+
 
 class CheckpointError(ValueError):
     """A checkpoint cannot safely resume this experiment."""
@@ -74,7 +77,7 @@ def decode_payload(payload: dict, *, expected_identity: str) -> tuple[Incrementa
         if plug in state.aggregates or count != counts[plug]:
             raise CheckpointError("Inconsistent support counts")
         # Keep the original floating-point total, including incremental roundoff.
-        if not math.isclose(total, totals[plug], rel_tol=1e-12, abs_tol=1e-7):
+        if not math.isclose(total, totals[plug], rel_tol=SUPPORT_REL_TOL, abs_tol=SUPPORT_ABS_TOL):
             raise CheckpointError("Inconsistent support total")
         state.aggregates[plug] = MutablePlugState(count, total)
     if set(state.aggregates) != set(counts):

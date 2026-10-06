@@ -16,7 +16,9 @@ This page maps likely review questions to the implementation and benchmark evide
 | **Does placement use future evaluation data?** | No. A fixed decision is persisted from declared estimates before loading the evaluation stream. Underestimation may make the chosen node infeasible; there is no hindsight fallback. | [v0.4 design](v0.4-design.md), [placement tests](../tests/test_placement.py) |
 | **Are edge/cloud latency and memory physically measured?** | No. Node and direct-link profiles model service demand and logical retained state. Measured reference timings are labeled separately; no distributed deployment or hardware calibration is claimed. | [placement accounting](v0.4-design.md), [profile](../configs/placement_profiles.json) |
 | **Can failure appear as a cheap successful execution?** | Completed-prefix cost is separate from total cost. Incomplete placements have a null total, explicit failure window and unserved queries. | [placement tests](../tests/test_placement.py), [CLI/replay tests](../tests/test_placement_cli.py) |
-| **How is worker crash recovery checked?** | Stop, cold rebuild and checkpoint replay share workloads/fault points; restores and served answers must agree with the oracle. Retry exhaustion and resource admission remain explicit terminal outcomes. | [v0.5 recovery contract](v0.5-design.md), [recovery tests](../tests/test_recovery.py) |
+| **How is worker crash recovery checked?** | Stop, cold rebuild and checkpoint replay share workloads/fault points; event registry, aggregate entities/counts/totals and exact facts are independently checked. Retry exhaustion and resource admission remain explicit terminal outcomes. | [v0.5.1 validation](v0.5.1-validation.md), [recovery tests](../tests/test_recovery.py) |
+| **Can a changed recovery outcome silently pass CI?** | CI requires a per-case feasible-fixture contract, not just a successful experiment or matching global histogram. Service prefixes, retry/fault counts, query accounting and audit evidence are checked; failures retain a diagnostic acceptance report. | [acceptance implementation](../src/adaptive_kg_reasoning/recovery_acceptance.py), [regressions](../tests/test_recovery_acceptance.py) |
+| **Does this complete an enterprise agent portfolio?** | No. It supplies KG systems evaluation and recovery evidence. Agent/provider quality, live/durable observability, security controls and deployed API operation remain absent. | README evidence-boundary table and [validation scope](v0.5.1-validation.md) |
 | **What does checkpoint durability prove?** | File flush/fsync and atomic replacement preserve a valid prior file on replacement failure. Checksums, trace identity and support validation reject drift/corruption. Coordinator failure and external exactly-once delivery are outside this experiment. | [checkpoint implementation](../src/adaptive_kg_reasoning/checkpoint.py), [fresh-process and replay tests](../tests/test_recovery_cli.py) |
 
 ## Core invariant
@@ -28,6 +30,12 @@ full_recomputation_facts(window_t)
 ```
 
 Optimization is accepted only after that invariant holds. This keeps the repository useful as an engineering portfolio artifact: the benchmark demonstrates not merely that one path runs faster, but that the faster path is checked against a deliberately simpler oracle.
+
+The recovery harness now additionally checks retained event membership, aggregate
+key sets, exact counts and finite totals within documented floating tolerances.
+A matching current fact set alone is insufficient to prove future recovery state
+is sound. These support checks apply to v0.5.1 recovery evaluation; historical
+v0.2 result files are unchanged.
 
 ## Suggested verification path
 

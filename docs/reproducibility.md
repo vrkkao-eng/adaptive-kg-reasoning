@@ -31,7 +31,7 @@ The bundle fingerprints source; it does not archive a dirty working tree or
 guarantee bit-for-bit timing reproduction. Requirements specify supported ranges,
 not a lockfile. Hashes detect accidental drift, not malicious tampering.
 
-CI uploads fresh v0.2.4 through v0.5 bundles and JUnit results for 30 days, including on failure.
+CI uploads fresh v0.2.4 through v0.5.1 bundles and JUnit results for 30 days, including on failure.
 Older experiment scripts still use their documented legacy output paths and are
 retained as historical smoke tests. A version in the changelog denotes a code
 milestone; publication as a Git tag/GitHub Release is a separate operation.
@@ -60,8 +60,8 @@ memory and failure semantics in detail.
 ## v0.5 recovery replay
 
 ```sh
-python experiments/run_v0_5_recovery.py --events 1000 --seed 42 --flush --output-dir results/runs/recovery-example
-python experiments/run_v0_5_recovery.py --input results/runs/recovery-example/input.csv --profiles results/runs/recovery-example/profiles.json --node fog --width 120 --slide 30 --threshold 450 --workloads none,sparse,dense,bursty --faults none,before_update,after_update,after_checkpoint,persistent_crash --fault-window 2 --checkpoint-every 2 --max-retries 2 --flush --output-dir results/runs/recovery-replay
+python experiments/run_v0_5_recovery.py --events 1000 --seed 42 --flush --require-expected-outcomes --output-dir results/runs/recovery-example
+python experiments/run_v0_5_recovery.py --input results/runs/recovery-example/input.csv --profiles results/runs/recovery-example/profiles.json --node fog --width 120 --slide 30 --threshold 450 --workloads none,sparse,dense,bursty --faults none,before_update,after_update,after_checkpoint,persistent_crash --fault-window 2 --checkpoint-every 2 --max-retries 2 --flush --require-expected-outcomes --output-dir results/runs/recovery-replay
 ```
 
 Preserve every recorded semantic, resource, request, fault, cadence and retry
@@ -76,3 +76,12 @@ the entire matrix is distinct from resuming a production service. The checkpoint
 identity is derived from the exact transitions and threshold in the current
 experiment. A changed trace cannot reuse the snapshot. See the
 [v0.5 contract](v0.5-design.md) before interpreting recovery or delivery claims.
+
+The v0.5.1 gate writes `acceptance.json` with deterministic per-case expectations,
+observations and mismatches. Replaying the same feasible fixture should reproduce
+this report as well as non-timing summaries, audit events and checkpoint bytes.
+An acceptance failure keeps those files and a failed manifest, then returns a
+non-zero exit code. Omit `--require-expected-outcomes` when intentionally studying
+capacity failures; then `acceptance_status=not_requested`. A passed exploratory
+manifest does not imply the declared recovery outcomes met the CI contract.
+See [validation and acceptance details](v0.5.1-validation.md).

@@ -3,21 +3,21 @@
 **Incremental reasoning over dynamic Knowledge Graph windows, with reproducible correctness and cost benchmarks.**
 
 [![tests](https://github.com/vrkkao-eng/adaptive-kg-reasoning/actions/workflows/tests.yml/badge.svg)](https://github.com/vrkkao-eng/adaptive-kg-reasoning/actions/workflows/tests.yml)
-![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
+![Python tested](https://img.shields.io/badge/Python-3.12%20tested-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.5.0.** The project evaluates materialisation, placement and bounded crash recovery for dynamic KG state. It now compares stopping, cold rebuild and local checkpoint replay under the same injected faults, with exact oracle checks and explicit unserved queries. Earlier strategy and placement experiments remain reproducible. Hashed evidence bundles preserve assumptions, results and recovery audit trails. This is a code milestone; tags and published releases are tracked separately.
+**Current milestone: v0.5.1.** The project evaluates materialisation, placement and bounded worker recovery for dynamic KG state. Recovery validation now checks active events, aggregate entities/counts/totals and exact facts, not just the cached answer. CI requires every recovery scenario to meet an explicit service/accounting contract. Earlier strategy and placement experiments remain reproducible. Hashed evidence bundles preserve assumptions, results and end-of-run audit records. This is a code milestone; tags and published releases are tracked separately.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
-| **Correctness** | Exact equivalence in all committed v0.2.3 benchmark windows |
-| **Measured performance** | 2.176×–17.613× total reference speedup across three overlap scenarios |
+| **Correctness** | Historical fact equivalence plus recovery support-state invariants, corruption regressions and per-case CI acceptance |
+| **Measured performance** | Historical v0.2.3 reference: 2.176×–17.613× across three overlap scenarios; not a v0.5 recovery speedup |
 | **Semantic reasoning** | OWL-RL entailment baseline separated from procedural window aggregation |
 | **Engineering practice** | Deterministic fixtures, pytest regression tests, CI benchmarks, per-run manifests and downloadable artifacts |
 | **Adaptive decisions** | Prior-demand policy, explicit bootstrap/switch costs, dense/sparse/bursty/idle comparisons; model units separate from timings |
 | **Resource-aware placement** | Three fixed baselines, estimate-only selection, explicit budget failures and byte/RTT accounting; simulated milliseconds separate from host measurements |
-| **Failure recovery** | Atomic local snapshots, validated restoration, bounded retries, three recovery baselines, explicit exhaustion and fault-injection/replay tests |
+| **Failure recovery** | Atomic local snapshots, full retained-support validation, bounded retries, three recovery baselines and explicit expected-outcome gates; worker exceptions, not OS-process restart |
 | **Research discipline** | Explicit limitations; environment-specific timings are not presented as general performance claims |
 
 The core question is:
@@ -44,7 +44,7 @@ pytest -q
 python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
 python experiments/run_v0_3_policy.py --events 5000 --repetitions 3
 python experiments/run_v0_4_placement.py --events 1000 --scenarios 120:30,120:120 --flush
-python experiments/run_v0_5_recovery.py --events 1000 --width 120 --slide 30 --flush
+python experiments/run_v0_5_recovery.py --events 1000 --width 120 --slide 30 --flush --require-expected-outcomes
 ```
 
 The comparative benchmark writes `input.csv`, `detail.csv`, `summary.csv` and `manifest.json` under a new `results/runs/<run_id>/` directory. See [reproduction and replay](docs/reproducibility.md). Committed v0.2.3 timings below remain historical GitHub Actions results, not new v0.2.4 measurements or hardware-independent claims.
@@ -219,6 +219,41 @@ injection, and external query acknowledgments are not persisted. See the
 [v0.5 recovery contract](docs/v0.5-design.md) for checkpoint integrity, retry,
 timing and delivery boundaries, and [replay instructions](docs/reproducibility.md).
 
+### v0.5.1 verification patch
+
+Aggregate key sets and integer support counts must match full-window recomputation.
+Totals must be finite and agree within `rel_tol=1e-12`, `abs_tol=1e-7`; both cached
+and support-derived facts must agree exactly. Tolerance does not excuse a changed
+classification or silently repair state. Reference grouping remains outside
+measured component timings.
+
+`--require-expected-outcomes` adds a feasible-fixture acceptance gate. It checks
+each requested workload/fault/policy case, service prefix, fault/retry counts,
+query accounting, completed/null totals and ordered audit evidence. It writes
+`acceptance.json`; failed acceptance returns a non-zero exit code while preserving
+results and a failed manifest. Leave the gate disabled when deliberately exploring
+insufficient resource budgets. See [the validation contract](docs/v0.5.1-validation.md).
+
+## Applied AI / FDE evidence boundaries
+
+The original P0–P4 agent roadmap and the KG systems milestones are not equivalent.
+This repository currently demonstrates the engineering practices below, not a
+completed enterprise agent application:
+
+| Priority | Evidence already present | Not implemented here |
+| --- | --- | --- |
+| P0 Evaluation | Deterministic KG oracle, aligned baselines, state/answer checks, recovery acceptance | Agent answer quality, groundedness, LLM/provider comparisons |
+| P1 Observability | Run manifests, component metrics, end-of-run audit sequences | Durable incremental audit, live traces, metrics backend, dashboard |
+| P2 Recovery | Bounded local worker exceptions, cold rebuild and checkpoint replay | OS-process restart/resume, tool/API timeout/backoff, escalation |
+| P3 Security/auditability | Input/source/artifact hashes, checkpoint integrity and identity | Authentication, authorization, secret controls, tamper-evident audit |
+| P4 Advanced agents | No agent feature is claimed | Jev integration, ReAct/planning, agent tools and governance |
+
+The evidence chain is **operational problem → explicit contract → aligned
+baselines → oracle/regression checks → CI → reproducible local evidence**.
+Real deployment/API operation is still missing; the edge/fog/cloud experiment is
+a simulation. The MSAI thesis demonstration remains a separate application
+direction. This patch introduces no new repo, provider or research algorithm.
+
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
@@ -291,6 +326,7 @@ adaptive-kg-reasoning/
 │   ├── v0.3-design.md
 │   ├── v0.4-design.md
 │   ├── v0.5-design.md
+│   ├── v0.5.1-validation.md
 │   ├── reproducibility.md
 │   └── technical-review.md
 ├── experiments/
@@ -317,6 +353,7 @@ adaptive-kg-reasoning/
 │   ├── placement.py    # fixed-site planning and modeled evaluation
 │   ├── checkpoint.py   # atomic local snapshot publication and validation
 │   ├── recovery.py     # bounded fault/recovery comparison and audit
+│   ├── recovery_acceptance.py # independent per-case acceptance contract
 │   └── ...             # RDF mapping, entailment, v0.1 strategies
 └── tests/
     ├── test_windows.py
@@ -368,6 +405,17 @@ atomic replacement, three recovery policies, bounded retry exhaustion and
 fault-injection evidence. Recovery preserves oracle equivalence and exposes
 unserved requests. The v0.4 placement experiment retains its original stop
 semantics. See [v0.5 design](docs/v0.5-design.md).
+
+**v0.5.1:** full recovery support-state checks and explicit CI acceptance, without
+changing checkpoint schema or earlier placement/strategy contracts. See
+[validation and claim boundaries](docs/v0.5.1-validation.md).
+
+### Candidate v0.6 — process-resume validation (not implemented)
+
+Define a new-process resume contract, durable input/served cursors and incremental
+audit persistence before adding live deployment claims. Exact whole-trace identity
+currently supports fixed experiment replay, not an append-only online stream.
+This requires its own failure/delivery semantics, not just another CLI flag.
 
 ### Later validation
 - run an established RSP workload (e.g. CityBench);

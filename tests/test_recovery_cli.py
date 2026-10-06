@@ -6,6 +6,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from adaptive_kg_reasoning import __version__
 from adaptive_kg_reasoning.evidence import sha256
 
 
@@ -22,10 +23,11 @@ def deterministic_summary(path):
 
 def test_recovery_bundle_replay_and_hashes(tmp_path):
     first, second = tmp_path / "first", tmp_path / "second"
-    result = invoke("--events", 120, "--width", 30, "--slide", 10, "--flush", "--output-dir", first)
+    result = invoke("--events", 120, "--width", 30, "--slide", 10, "--flush",
+                    "--require-expected-outcomes", "--output-dir", first)
     assert result.returncode == 0, result.stderr
     result = invoke("--input", first / "input.csv", "--profiles", first / "profiles.json",
-                    "--width", 30, "--slide", 10, "--flush", "--output-dir", second)
+                    "--width", 30, "--slide", 10, "--flush", "--require-expected-outcomes", "--output-dir", second)
     assert result.returncode == 0, result.stderr
     rows = deterministic_summary(first / "summary.csv")
     assert len(rows) == 60
@@ -33,12 +35,19 @@ def test_recovery_bundle_replay_and_hashes(tmp_path):
     assert json.loads((first / "audit.json").read_text()) == json.loads((second / "audit.json").read_text())
     manifest = json.loads((first / "manifest.json").read_text())
     assert manifest["status"] == "passed"
+    assert __version__ == "0.5.1"
+    assert manifest["benchmark"] == f"v{__version__}" and manifest["acceptance_status"] == "passed"
+    acceptance = json.loads((first / "acceptance.json").read_text())
+    assert acceptance["status"] == "passed" and len(acceptance["cases"]) == 60
+    assert acceptance == json.loads((second / "acceptance.json").read_text())
     assert manifest["recovery_outcomes"] == {"completed": 12, "recovered": 24,
         "retry_exhausted": 8, "stopped_on_failure": 16}
     assert manifest["checked_queries"] > 0
     for name, digest in manifest["artifacts_sha256"].items():
         assert sha256(first / name) == digest
     assert any(name.startswith("checkpoint-") for name in manifest["artifacts_sha256"])
+    for path in first.glob("checkpoint-*.json"):
+        assert path.read_bytes() == (second / path.name).read_bytes()
     digest = sha256(first / "manifest.json")
     assert invoke("--output-dir", first).returncode != 0
     assert sha256(first / "manifest.json") == digest
@@ -75,6 +84,19 @@ def test_resource_exhaustion_has_no_recovery_success(tmp_path):
     rows = deterministic_summary(output / "summary.csv")
     assert all(row["status"] == "memory_budget_exceeded" and row["served_queries"] == "0" for row in rows)
     assert all(row["recovery_attempts"] == "0" for row in rows)
+    assert json.loads((output / "manifest.json").read_text())["acceptance_status"] == "not_requested"
+    assert not (output / "acceptance.json").exists()
+    gated = tmp_path / "gated"
+    result = invoke("--profiles", profile, "--events", 40, "--width", 30, "--slide", 10,
+                    "--workloads", "dense", "--require-expected-outcomes", "--output-dir", gated)
+    assert result.returncode != 0 and "acceptance failed" in result.stderr
+    manifest = json.loads((gated / "manifest.json").read_text())
+    assert manifest["status"] == "failed" and manifest["acceptance_status"] == "failed"
+    assert manifest["recovery_outcomes"] == {"memory_budget_exceeded": 15}
+    assert json.loads((gated / "acceptance.json").read_text())["status"] == "failed"
+    assert (gated / "summary.csv").exists() and (gated / "audit.json").exists()
+    for name, digest in manifest["artifacts_sha256"].items():
+        assert sha256(gated / name) == digest
 
 
 def test_failed_configuration_retains_manifest(tmp_path):

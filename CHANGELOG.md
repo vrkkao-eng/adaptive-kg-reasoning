@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.1 — retained-state validation and recovery acceptance
+
+- Close a recovery-check blind spot: validate aggregate entity keys, exact integer counts and finite totals against independent full-window support, even when cached facts still match.
+- Reuse documented checkpoint roundoff tolerances without repairing totals; require exact cached and support-derived fact agreement.
+- Precompute aggregate references outside component timing, including checkpoint restore validation.
+- Add opt-in per-case acceptance for feasible recovery fixtures; check outcomes, service prefixes, retries, query accounting and audit evidence rather than aggregate outcome counts alone.
+- Preserve `acceptance.json`, observed results and failed manifests on gate failure; require the gate in CI and keep exploratory capacity-failure runs valid when it is disabled.
+- Add corruption, tolerance/threshold, acceptance/accounting and deterministic gated-replay regressions.
+- Update English reviewer documentation to distinguish KG engineering evidence from agent evaluation, durable observability, security and deployed-service claims; state Python 3.12 as the tested runtime.
+- Correct the stale package version from `0.1.0` to `0.5.1` and align the current recovery manifest milestone with it; historical benchmark labels remain unchanged.
+- Keep checkpoint schema 1, recovery policies, v0.4 behavior and historical benchmark artifacts unchanged. No agent/provider, OS-process resume or deployment is introduced.
+
 ## v0.5.0 — bounded checkpoint recovery
 
 - Compare stop-on-failure, current-window cold rebuild and checkpoint replay on the same fixed-site workloads and injected crashes.
