@@ -112,8 +112,9 @@ def run(args, run_dir, manifest):
                     checked_queries=sum(row["checked_queries"] for row in summaries))
     if args.require_expected_outcomes:
         report = validate_recovery_matrix(summaries, details, audits, schedules=schedules,
-                                          specs=specs, max_retries=args.max_retries)
-        (run_dir / "acceptance.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+                                          specs=specs, max_retries=args.max_retries,
+                                          checkpoint_every=args.checkpoint_every)
+        (run_dir / "acceptance.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
         manifest["acceptance_status"] = report["status"]
         if report["status"] != "passed":
             raise AssertionError("Recovery acceptance failed; inspect acceptance.json and retained outcomes")

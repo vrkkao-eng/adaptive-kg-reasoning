@@ -52,8 +52,8 @@ jobs:
         run: python experiments/run_v0_3_policy.py --events 1000 --scenarios 120:30,120:120 --repetitions 2 --flush --output-dir results/runs/v030
       - name: Run v0.4 resource-aware placement comparison
         run: python experiments/run_v0_4_placement.py --events 1000 --scenarios 120:30,120:120 --flush --output-dir results/runs/v040
-      - name: Run v0.5.1 recovery acceptance matrix
-        run: python experiments/run_v0_5_recovery.py --events 1000 --width 120 --slide 30 --flush --require-expected-outcomes --output-dir results/runs/v051
+      - name: Run v0.5.2 recovery acceptance matrix
+        run: python experiments/run_v0_5_recovery.py --events 1000 --width 120 --slide 30 --flush --require-expected-outcomes --output-dir results/runs/v052
       - name: Preserve benchmark evidence and test report
         if: always()
         uses: actions/upload-artifact@v4
