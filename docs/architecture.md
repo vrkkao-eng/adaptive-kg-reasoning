@@ -1,4 +1,4 @@
-# Architecture — v0.1 through v0.4
+# Architecture — v0.1 through v0.5
 
 ## Current execution path
 
@@ -39,6 +39,27 @@ demand; `placement.py` checks a shared reference trace and evaluates fixed sites
 No node executes remotely. Host measurements and modeled milliseconds remain
 separate. Budget violations stop modeled service without migration or recovery.
 See the [v0.4 accounting contract](v0.4-design.md).
+
+## v0.5 recovery path
+
+```text
+shared input/windows/queries + fixed node + declared fault scenario
+                              |
+          stop / cold rebuild / checkpoint replay
+                              |
+       state update -> local snapshot -> checked query readout
+              |             |
+       injected crash -> bounded restore/replay or terminal outcome
+                              |
+             oracle checks + component costs + audit bundle
+```
+
+`checkpoint.py` publishes a complete local state snapshot and validates its
+integrity/support. `recovery.py` discards worker state on injected faults,
+restores an applied-window cursor, replays deltas without re-serving past
+queries, and bounds retries. Resource admission failures remain terminal.
+The coordinator survives fault injection; external acknowledgments are outside
+the checkpoint transaction. [v0.5 design](v0.5-design.md) defines the contract.
 
 ## Original v0.1 baseline
 

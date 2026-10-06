@@ -31,7 +31,7 @@ The bundle fingerprints source; it does not archive a dirty working tree or
 guarantee bit-for-bit timing reproduction. Requirements specify supported ranges,
 not a lockfile. Hashes detect accidental drift, not malicious tampering.
 
-CI uploads fresh v0.2.4, v0.3 and v0.4 bundles and JUnit results for 30 days, including on failure.
+CI uploads fresh v0.2.4 through v0.5 bundles and JUnit results for 30 days, including on failure.
 Older experiment scripts still use their documented legacy output paths and are
 retained as historical smoke tests. A version in the changelog denotes a code
 milestone; publication as a Git tag/GitHub Release is a separate operation.
@@ -56,3 +56,23 @@ Inspect placement outcomes as well as manifest status: a completed experiment
 may correctly report an infeasible site. Never compare its partial cost to a
 completed execution's total. The [v0.4 design](v0.4-design.md) defines the cost,
 memory and failure semantics in detail.
+
+## v0.5 recovery replay
+
+```sh
+python experiments/run_v0_5_recovery.py --events 1000 --seed 42 --flush --output-dir results/runs/recovery-example
+python experiments/run_v0_5_recovery.py --input results/runs/recovery-example/input.csv --profiles results/runs/recovery-example/profiles.json --node fog --width 120 --slide 30 --threshold 450 --workloads none,sparse,dense,bursty --faults none,before_update,after_update,after_checkpoint,persistent_crash --fault-window 2 --checkpoint-every 2 --max-retries 2 --flush --output-dir results/runs/recovery-replay
+```
+
+Preserve every recorded semantic, resource, request, fault, cadence and retry
+setting. Deterministic summary fields, audit events, schedules and checkpoint
+contents should match; measured fields ending in `_ms`, environment, run IDs
+and timestamps need not. Per-run summary timing includes checkpoint I/O and
+failed/replayed work; terminal outcomes have no completed total.
+
+The runner always starts a new experiment and refuses existing output/checkpoint
+paths. `load_checkpoint` is the separately tested state-restoration API; replaying
+the entire matrix is distinct from resuming a production service. The checkpoint
+identity is derived from the exact transitions and threshold in the current
+experiment. A changed trace cannot reuse the snapshot. See the
+[v0.5 contract](v0.5-design.md) before interpreting recovery or delivery claims.

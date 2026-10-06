@@ -7,7 +7,7 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.4.0.** The project compares materialisation strategies on identical dynamic-KG workloads and now simulates fixed edge/fog/cloud placement under declared resource and network constraints. A budget-aware selector uses workload estimates before reading the evaluation stream. Reference answers and states are checked against full recomputation; hashed evidence bundles preserve the experiment. This is a code milestone, not a claim of a published release or distributed deployment.
+**Current milestone: v0.5.0.** The project evaluates materialisation, placement and bounded crash recovery for dynamic KG state. It now compares stopping, cold rebuild and local checkpoint replay under the same injected faults, with exact oracle checks and explicit unserved queries. Earlier strategy and placement experiments remain reproducible. Hashed evidence bundles preserve assumptions, results and recovery audit trails. This is a code milestone; tags and published releases are tracked separately.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
@@ -17,6 +17,7 @@
 | **Engineering practice** | Deterministic fixtures, pytest regression tests, CI benchmarks, per-run manifests and downloadable artifacts |
 | **Adaptive decisions** | Prior-demand policy, explicit bootstrap/switch costs, dense/sparse/bursty/idle comparisons; model units separate from timings |
 | **Resource-aware placement** | Three fixed baselines, estimate-only selection, explicit budget failures and byte/RTT accounting; simulated milliseconds separate from host measurements |
+| **Failure recovery** | Atomic local snapshots, validated restoration, bounded retries, three recovery baselines, explicit exhaustion and fault-injection/replay tests |
 | **Research discipline** | Explicit limitations; environment-specific timings are not presented as general performance claims |
 
 The core question is:
@@ -43,6 +44,7 @@ pytest -q
 python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 3600:60,3600:300,3600:900
 python experiments/run_v0_3_policy.py --events 5000 --repetitions 3
 python experiments/run_v0_4_placement.py --events 1000 --scenarios 120:30,120:120 --flush
+python experiments/run_v0_5_recovery.py --events 1000 --width 120 --slide 30 --flush
 ```
 
 The comparative benchmark writes `input.csv`, `detail.csv`, `summary.csv` and `manifest.json` under a new `results/runs/<run_id>/` directory. See [reproduction and replay](docs/reproducibility.md). Committed v0.2.3 timings below remain historical GitHub Actions results, not new v0.2.4 measurements or hardware-independent claims.
@@ -191,6 +193,32 @@ represent additive service demand, not measured end-to-end latency. See the
 [v0.4 accounting contract and limitations](docs/v0.4-design.md) and
 [replay instructions](docs/reproducibility.md).
 
+## v0.5.0 bounded failure recovery
+
+The reliability question is: **can maintained KG state recover after a worker
+crash, and how much work does recovery add?** Three policies share the same fixed
+node, windows, requests and fault scenario: `stop_on_failure`, `cold_rebuild` and
+`checkpoint_replay`. The recovery coordinator discards worker state and restores
+an atomically published local checkpoint or explicitly rebuilds when none exists.
+
+```bash
+python experiments/run_v0_5_recovery.py --events 1000 --flush --output-dir results/runs/recovery-example
+```
+
+The default matrix covers no fault, crashes before/after update and after
+checkpoint publication, and persistent crashes that exhaust bounded retries.
+Inspect `summary.csv` for service outcomes and recovery work, `audit.json` for
+the fault/restore/replay sequence, and checkpoint files for retained support.
+A present invalid checkpoint stops recovery; an insufficient memory budget
+remains terminal. Every recovered state and served answer is checked against
+full recomputation. Normal-path checkpoint I/O and failed/replayed work are
+included in measured component costs.
+
+This is a local worker-recovery experiment. The coordinator survives fault
+injection, and external query acknowledgments are not persisted. See the
+[v0.5 recovery contract](docs/v0.5-design.md) for checkpoint integrity, retry,
+timing and delivery boundaries, and [replay instructions](docs/reproducibility.md).
+
 ## Data
 
 The raw sample uses the DEBS 2014 Grand Challenge base-stream field structure:
@@ -262,6 +290,7 @@ adaptive-kg-reasoning/
 │   ├── v0.2-design.md
 │   ├── v0.3-design.md
 │   ├── v0.4-design.md
+│   ├── v0.5-design.md
 │   ├── reproducibility.md
 │   └── technical-review.md
 ├── experiments/
@@ -272,7 +301,8 @@ adaptive-kg-reasoning/
 │   ├── run_v0_2_incremental.py
 │   ├── run_v0_2_benchmark.py
 │   ├── run_v0_3_policy.py
-│   └── run_v0_4_placement.py
+│   ├── run_v0_4_placement.py
+│   └── run_v0_5_recovery.py
 ├── queries/
 ├── results/
 ├── src/adaptive_kg_reasoning/
@@ -285,6 +315,8 @@ adaptive-kg-reasoning/
 │   ├── resources.py    # validated resource and workload estimates
 │   ├── network_cost.py # direct-link RTT and payload accounting
 │   ├── placement.py    # fixed-site planning and modeled evaluation
+│   ├── checkpoint.py   # atomic local snapshot publication and validation
+│   ├── recovery.py     # bounded fault/recovery comparison and audit
 │   └── ...             # RDF mapping, entailment, v0.1 strategies
 └── tests/
     ├── test_windows.py
@@ -329,13 +361,13 @@ baselines and estimate-only selection. v0.3 asks **what** to materialise; v0.4
 isolates **where** by holding the incremental strategy constant. Joint strategy
 and placement optimization remains future work. See [v0.4 design](docs/v0.4-design.md).
 
-### v0.5 — proposed reliability evidence
+### v0.5 — bounded recovery evidence
 
-Build on the explicit v0.4 failure states with a separately specified recovery
-contract, checkpoint/replay tests and fault-injection evidence. Scope and
-acceptance criteria must be agreed before implementation; these features are
-not present in v0.4. No separate thesis application or agent stack is required
-for this repository's current engineering path.
+Implemented: a fixed-site recovery contract, local checkpoint integrity and
+atomic replacement, three recovery policies, bounded retry exhaustion and
+fault-injection evidence. Recovery preserves oracle equivalence and exposes
+unserved requests. The v0.4 placement experiment retains its original stop
+semantics. See [v0.5 design](docs/v0.5-design.md).
 
 ### Later validation
 - run an established RSP workload (e.g. CityBench);

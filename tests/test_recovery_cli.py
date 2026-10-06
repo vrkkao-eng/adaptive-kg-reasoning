@@ -1,0 +1,96 @@
+import csv
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+from adaptive_kg_reasoning.evidence import sha256
+
+
+def invoke(*args):
+    return subprocess.run([sys.executable, str(ROOT / "experiments/run_v0_5_recovery.py"),
+                           *map(str, args)], capture_output=True, text=True)
+
+
+def deterministic_summary(path):
+    with path.open(encoding="utf-8") as fh:
+        return [{key: value for key, value in row.items() if not key.endswith("_ms")}
+                for row in csv.DictReader(fh)]
+
+
+def test_recovery_bundle_replay_and_hashes(tmp_path):
+    first, second = tmp_path / "first", tmp_path / "second"
+    result = invoke("--events", 120, "--width", 30, "--slide", 10, "--flush", "--output-dir", first)
+    assert result.returncode == 0, result.stderr
+    result = invoke("--input", first / "input.csv", "--profiles", first / "profiles.json",
+                    "--width", 30, "--slide", 10, "--flush", "--output-dir", second)
+    assert result.returncode == 0, result.stderr
+    rows = deterministic_summary(first / "summary.csv")
+    assert len(rows) == 60
+    assert rows == deterministic_summary(second / "summary.csv")
+    assert json.loads((first / "audit.json").read_text()) == json.loads((second / "audit.json").read_text())
+    manifest = json.loads((first / "manifest.json").read_text())
+    assert manifest["status"] == "passed"
+    assert manifest["recovery_outcomes"] == {"completed": 12, "recovered": 24,
+        "retry_exhausted": 8, "stopped_on_failure": 16}
+    assert manifest["checked_queries"] > 0
+    for name, digest in manifest["artifacts_sha256"].items():
+        assert sha256(first / name) == digest
+    assert any(name.startswith("checkpoint-") for name in manifest["artifacts_sha256"])
+    digest = sha256(first / "manifest.json")
+    assert invoke("--output-dir", first).returncode != 0
+    assert sha256(first / "manifest.json") == digest
+
+
+def test_checkpoint_load_in_fresh_process(tmp_path):
+    output = tmp_path / "run"
+    result = invoke("--events", 40, "--width", 30, "--slide", 10, "--flush",
+                    "--faults", "none", "--workloads", "dense", "--output-dir", output)
+    assert result.returncode == 0, result.stderr
+    checkpoint = output / "checkpoint-0-0-checkpoint_replay.json"
+    raw = json.loads(checkpoint.read_text())
+    code = ("import sys; from pathlib import Path; "
+            f"sys.path.insert(0, {str(ROOT / 'src')!r}); "
+            "from adaptive_kg_reasoning.checkpoint import load_checkpoint; "
+            "state, cursor = load_checkpoint(Path(sys.argv[1]), expected_identity=sys.argv[2]); "
+            "print(cursor, len(state.active_events), len(state.facts))")
+    loaded = subprocess.run([sys.executable, "-c", code, str(checkpoint), raw["payload"]["identity"]],
+                            capture_output=True, text=True)
+    assert loaded.returncode == 0, loaded.stderr
+    assert int(loaded.stdout.split()[0]) == raw["payload"]["cursor"]
+
+
+def test_resource_exhaustion_has_no_recovery_success(tmp_path):
+    raw = json.loads((ROOT / "configs/placement_profiles.json").read_text())
+    for node in raw["nodes"]:
+        node["memory_budget_bytes"] = 0
+    profile = tmp_path / "profiles.json"
+    profile.write_text(json.dumps(raw))
+    output = tmp_path / "run"
+    result = invoke("--profiles", profile, "--events", 40, "--width", 30, "--slide", 10,
+                    "--workloads", "dense", "--output-dir", output)
+    assert result.returncode == 0, result.stderr
+    rows = deterministic_summary(output / "summary.csv")
+    assert all(row["status"] == "memory_budget_exceeded" and row["served_queries"] == "0" for row in rows)
+    assert all(row["recovery_attempts"] == "0" for row in rows)
+
+
+def test_failed_configuration_retains_manifest(tmp_path):
+    output = tmp_path / "invalid"
+    result = invoke("--events", 40, "--fault-window", 100000, "--output-dir", output)
+    assert result.returncode != 0
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["status"] == "failed" and "outside" in manifest["error"]
+    assert not (output / "summary.csv").exists()
+
+
+def test_empty_input_and_nonfinite_load_fail(tmp_path):
+    for name, body in (("empty", ""), ("nan", "1,0,nan,1,1,1,1\n")):
+        source = tmp_path / f"{name}.csv"
+        source.write_text("id,timestamp,value,property,plug_id,household_id,house_id\n" + body)
+        output = tmp_path / name
+        result = invoke("--input", source, "--faults", "none", "--output-dir", output)
+        assert result.returncode != 0
+        assert json.loads((output / "manifest.json").read_text())["status"] == "failed"

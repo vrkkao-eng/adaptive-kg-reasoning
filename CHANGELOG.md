@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.0 — bounded checkpoint recovery
+
+- Compare stop-on-failure, current-window cold rebuild and checkpoint replay on the same fixed-site workloads and injected crashes.
+- Publish local snapshots with file flush/fsync and atomic replacement; validate schema, checksum, trace identity and retained support state on restore.
+- Preserve applied-window cursor and floating-point aggregates; replay state without re-serving historical queries.
+- Bound per-window retries and expose persistent failure, invalid checkpoints, no-checkpoint cold starts and unrecoverable resource exhaustion.
+- Record component timings, failed-attempt/replay work, checkpoint I/O, served/unserved queries and ordered audit events in hashed bundles.
+- Add snapshot integrity, publication failure, fault boundary, oracle, fresh-process and replay regression coverage plus CI recovery evidence.
+- Keep v0.4 fixed placement baselines intact and document English recovery semantics and limitations.
+
 ## v0.4.0 — resource-aware fixed placement simulation
 
 - Compare fixed edge, fog and cloud placement with a budget-aware, estimate-only selector.
