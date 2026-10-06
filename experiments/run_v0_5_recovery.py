@@ -47,7 +47,8 @@ def main():
     config = {**vars(args), "input": str(args.input) if args.input else None,
               "profiles": str(args.profiles), "output_dir": str(run_dir),
               "generated": args.input is None, "generator_seed": args.seed if args.input is None else None}
-    manifest = new_manifest(ROOT, run_dir, benchmark=f"v{__version__}", config=config)
+    manifest = new_manifest(ROOT, run_dir, benchmark="v0.5.2", config=config)
+    manifest["package_version"] = __version__
     manifest["acceptance_status"] = "pending" if args.require_expected_outcomes else "not_requested"
     try:
         run(args, run_dir, manifest)

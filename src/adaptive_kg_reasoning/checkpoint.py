@@ -98,8 +98,8 @@ def decode_payload(payload: dict, *, expected_identity: str) -> tuple[Incrementa
     return state, cursor
 
 
-def save_checkpoint(path: Path, state: IncrementalHighRecentState, *, cursor: int, identity: str) -> int:
-    """Publish a complete snapshot with atomic replacement; preserve the old file on failure."""
+def encode_payload(state: IncrementalHighRecentState, *, cursor: int, identity: str) -> dict:
+    """Encode validated support state without selecting a persistence backend."""
     payload = {
         "cursor": cursor, "identity": identity, "threshold_watts": state.threshold_watts,
         "active_events": [{"id": event_id, "plug": str(plug), "value": value}
@@ -109,6 +109,12 @@ def save_checkpoint(path: Path, state: IncrementalHighRecentState, *, cursor: in
         "facts": sorted([list(map(str, fact)) for fact in state.facts]),
     }
     decode_payload(payload, expected_identity=identity)
+    return payload
+
+
+def save_checkpoint(path: Path, state: IncrementalHighRecentState, *, cursor: int, identity: str) -> int:
+    """Publish a complete snapshot with atomic replacement; preserve the old file on failure."""
+    payload = encode_payload(state, cursor=cursor, identity=identity)
     data = canonical_bytes({"schema_version": 1, "payload": payload,
                             "sha256": hashlib.sha256(canonical_bytes(payload)).hexdigest()}) + b"\n"
     temporary = None

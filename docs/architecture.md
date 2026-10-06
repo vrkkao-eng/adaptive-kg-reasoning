@@ -1,4 +1,4 @@
-# Architecture — v0.1 through v0.5
+# Architecture — v0.1 through v0.6
 
 ## Current execution path
 
@@ -64,6 +64,19 @@ the checkpoint transaction. [v0.5 design](v0.5-design.md) defines the contract.
 declared scenarios and validates typed evidence and component accounting after
 measurement. It never runs the worker or repairs results. See the
 [v0.5.2 acceptance contract](v0.5.2-acceptance.md).
+
+## v0.6 process-resume path
+
+Immutable per-job input/config and engine identity reconstruct a fixed trace in
+each fresh worker. `process_resume.py` restores and checks the committed prefix,
+applies the next window and commits KG state, filtered input offset, local service
+receipt and incremental audit together in SQLite. `resume_experiment.py` waits
+for a declared boundary, kills/reaps the worker and launches a fresh process under
+a bounded restart policy. Acceptance projects expected prefixes from the scenario.
+
+SQLite progress survives worker termination; parent exports/manifests do not form
+a delivery transaction. This proves local receipt accounting, not external client
+acknowledgment or deployed service operation. See [v0.6 design](v0.6-design.md).
 
 ## Original v0.1 baseline
 
