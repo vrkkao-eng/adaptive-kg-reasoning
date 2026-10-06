@@ -7,9 +7,11 @@ import math
 from pathlib import Path
 import time
 
-from .checkpoint import CheckpointError, canonical_bytes, load_checkpoint, save_checkpoint
+from .checkpoint import (CheckpointError, SUPPORT_ABS_TOL, SUPPORT_REL_TOL,
+                         canonical_bytes, load_checkpoint, save_checkpoint)
 from .incremental import IncrementalHighRecentState
-from .recompute import plug_uri, recompute_window
+from .namespaces import EX
+from .recompute import aggregate_window_loads, plug_uri, recompute_window
 from .resources import MemoryModel, NodeProfile, nonnegative_int
 from .windows import WindowTransition
 
@@ -49,10 +51,33 @@ def trace_identity(windows: list[WindowTransition], *, threshold: float) -> str:
     return digest.hexdigest()
 
 
-def check_state(state, window, oracle):
+def check_state(state, window, oracle, *, expected_aggregates=None):
+    """Check retained support as well as answers; never repair the state being checked."""
+    def diverges(component):
+        raise AssertionError(f"Recovered state diverges at window {window.index}: {component}")
+
     expected_events = {event.id: (plug_uri(event), event.value) for event in window.events}
-    if state.active_events != expected_events or frozenset(state.facts) != oracle.facts:
-        raise AssertionError(f"Recovered state diverges at window {window.index}")
+    if state.active_events != expected_events:
+        diverges("active events")
+    expected = (aggregate_window_loads(window.events)
+                if expected_aggregates is None else expected_aggregates)
+    if set(state.aggregates) != set(expected):
+        diverges("aggregate entities")
+    for plug, reference in expected.items():
+        actual = state.aggregates[plug]
+        if type(actual.count) is not int or actual.count != reference.count:
+            diverges("support count")
+        total = actual.total_load
+        if (isinstance(total, bool) or not isinstance(total, (int, float))
+                or not math.isfinite(total)
+                or not math.isclose(total, reference.total_load,
+                                    rel_tol=SUPPORT_REL_TOL, abs_tol=SUPPORT_ABS_TOL)):
+            diverges("support total")
+    support_facts = {(plug, EX.hasState, EX.HighRecentConsumption)
+                     for plug, aggregate in state.aggregates.items()
+                     if aggregate.average_load >= state.threshold_watts}
+    if frozenset(state.facts) != oracle.facts or state.facts != support_facts:
+        diverges("facts")
 
 
 def benchmark_recovery(windows: list[WindowTransition], queries: list[int], *, policy: str,
@@ -83,6 +108,7 @@ def benchmark_recovery(windows: list[WindowTransition], queries: list[int], *, p
     identity = trace_identity(windows, threshold=threshold)
     # Oracle work is outside all service/recovery measurements.
     oracles = [recompute_window(window, threshold_watts=threshold) for window in windows]
+    aggregate_oracles = [aggregate_window_loads(window.events) for window in windows]
     state = IncrementalHighRecentState(threshold_watts=threshold)
     metrics = {name: 0 for name in ("faults_injected", "recovery_attempts", "update_calls",
                "cold_bootstraps", "replayed_windows", "checkpoint_writes", "checkpoint_loads",
@@ -114,7 +140,8 @@ def benchmark_recovery(windows: list[WindowTransition], queries: list[int], *, p
         metrics["update_calls"] += 1
         metrics["replayed_windows"] += int(replay)
         metrics["cold_bootstraps"] += int(bootstrap)
-        check_state(state, windows[window.index], oracles[window.index])
+        check_state(state, windows[window.index], oracles[window.index],
+                    expected_aggregates=aggregate_oracles[window.index])
         metrics["checked_states"] += 1
 
     for index, (window, count) in enumerate(zip(windows, queries, strict=True)):
@@ -174,7 +201,8 @@ def benchmark_recovery(windows: list[WindowTransition], queries: list[int], *, p
                         if cursor != checkpoint_cursor or cursor > index or state.threshold_watts != threshold:
                             raise CheckpointError("Checkpoint cursor or threshold mismatch")
                         try:
-                            check_state(state, windows[cursor], oracles[cursor])
+                            check_state(state, windows[cursor], oracles[cursor],
+                                        expected_aggregates=aggregate_oracles[cursor])
                         except AssertionError as exc:
                             raise CheckpointError("Checkpoint state does not match cursor") from exc
                     except CheckpointError as exc:
