@@ -7,7 +7,7 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.5.2.** The project evaluates materialisation, placement and bounded worker recovery for dynamic KG state. Recovery validation checks active events, aggregate entities/counts/totals and exact facts, not just the cached answer. CI acceptance now also requires typed per-window work counts, the declared fault/restore event protocol and consistent component-time accounting. Earlier strategy and placement experiments remain reproducible. Hashed evidence bundles preserve assumptions, results and end-of-run audit records. This is a code milestone; tags and published releases are tracked separately.
+**Current milestone: v0.6.0.** The project evaluates materialisation, placement and recovery for dynamic KG state. A new fixed-trace experiment kills real worker processes and resumes in fresh processes using transactional local KG state, input/service cursors and incremental audit records. v0.5.2's exception-recovery policies and strict evidence gate remain separate, reproducible baselines. Hashed evidence, oracle checks and CI expose both completed service and retained terminal prefixes. Local receipts are not external exactly-once delivery. This is a code milestone; tags and published releases are tracked separately.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
@@ -17,7 +17,7 @@
 | **Engineering practice** | Deterministic fixtures, pytest regression tests, CI benchmarks, per-run manifests and downloadable artifacts |
 | **Adaptive decisions** | Prior-demand policy, explicit bootstrap/switch costs, dense/sparse/bursty/idle comparisons; model units separate from timings |
 | **Resource-aware placement** | Three fixed baselines, estimate-only selection, explicit budget failures and byte/RTT accounting; simulated milliseconds separate from host measurements |
-| **Failure recovery** | Atomic local snapshots, full retained-support validation, bounded retries, three recovery baselines and explicit expected-outcome gates; worker exceptions, not OS-process restart |
+| **Failure recovery** | v0.5 bounded exception recovery plus v0.6 real process kills, new-process resume, transactional local receipts/cursors and explicit expected-prefix gates |
 | **Research discipline** | Explicit limitations; environment-specific timings are not presented as general performance claims |
 
 The core question is:
@@ -45,6 +45,7 @@ python experiments/run_v0_2_benchmark.py --regenerate --events 5000 --scenarios 
 python experiments/run_v0_3_policy.py --events 5000 --repetitions 3
 python experiments/run_v0_4_placement.py --events 1000 --scenarios 120:30,120:120 --flush
 python experiments/run_v0_5_recovery.py --events 1000 --width 120 --slide 30 --flush --require-expected-outcomes
+python experiments/run_v0_6_resume.py --events 300 --width 120 --slide 30 --flush
 ```
 
 The comparative benchmark writes `input.csv`, `detail.csv`, `summary.csv` and `manifest.json` under a new `results/runs/<run_id>/` directory. See [reproduction and replay](docs/reproducibility.md). Committed v0.2.3 timings below remain historical GitHub Actions results, not new v0.2.4 measurements or hardware-independent claims.
@@ -251,6 +252,21 @@ roundoff (`rel_tol=1e-9`, `abs_tol_ms=1e-7`), not a speed or latency target.
 retains strict-JSON diagnostics on failure. Checkpoint schema and worker semantics
 are unchanged. See [the v0.5.2 acceptance contract](docs/v0.5.2-acceptance.md).
 
+### v0.6.0 process-kill and resume
+
+The new experiment compares uninterrupted execution, stop and bounded resume at
+before-update, after-update, before-commit and after-commit boundaries. The parent
+kills a real worker; a fresh process revalidates the persisted job and continues
+only uncommitted windows. SQLite transactions couple retained KG state, filtered
+input frontier, local service receipts and incremental commit audit records.
+
+Four workloads and ten scenarios form a 40-case acceptance matrix, including
+persistent process failure. A killed uncommitted window may re-execute, but each
+window has one local receipt. No client acknowledgment or external tool/API side
+effect is included. The standard-library SQLite backend requires SQLite 3.37+.
+See [the process-resume contract](docs/v0.6-design.md) for frontiers, failure
+boundaries, manual continuation and artifact-hash caveats.
+
 ## Applied AI / FDE evidence boundaries
 
 The original P0–P4 agent roadmap and the KG systems milestones are not equivalent.
@@ -260,8 +276,8 @@ completed enterprise agent application:
 | Priority | Evidence already present | Not implemented here |
 | --- | --- | --- |
 | P0 Evaluation | Deterministic KG oracle, aligned baselines, state/answer checks, recovery acceptance | Agent answer quality, groundedness, LLM/provider comparisons |
-| P1 Observability | Run manifests, component metrics, end-of-run audit sequences | Durable incremental audit, live traces, metrics backend, dashboard |
-| P2 Recovery | Bounded local worker exceptions, cold rebuild and checkpoint replay | OS-process restart/resume, tool/API timeout/backoff, escalation |
+| P1 Observability | Run manifests, component metrics, v0.6 incremental transactional audit | Live traces, metrics backend, dashboard, supervisor-crash export recovery |
+| P2 Recovery | Worker exceptions plus real process termination/resume with durable local frontiers | External delivery guarantees, tool/API timeout/backoff, escalation, deployed service |
 | P3 Security/auditability | Input/source/artifact hashes, checkpoint integrity and identity | Authentication, authorization, secret controls, tamper-evident audit |
 | P4 Advanced agents | No agent feature is claimed | Jev integration, ReAct/planning, agent tools and governance |
 
@@ -345,6 +361,7 @@ adaptive-kg-reasoning/
 │   ├── v0.5-design.md
 │   ├── v0.5.1-validation.md
 │   ├── v0.5.2-acceptance.md
+│   ├── v0.6-design.md
 │   ├── reproducibility.md
 │   └── technical-review.md
 ├── experiments/
@@ -356,7 +373,9 @@ adaptive-kg-reasoning/
 │   ├── run_v0_2_benchmark.py
 │   ├── run_v0_3_policy.py
 │   ├── run_v0_4_placement.py
-│   └── run_v0_5_recovery.py
+│   ├── run_v0_5_recovery.py
+│   ├── run_v0_6_resume.py
+│   └── resume_worker.py
 ├── queries/
 ├── results/
 ├── src/adaptive_kg_reasoning/
@@ -372,6 +391,8 @@ adaptive-kg-reasoning/
 │   ├── checkpoint.py   # atomic local snapshot publication and validation
 │   ├── recovery.py     # bounded fault/recovery comparison and audit
 │   ├── recovery_acceptance.py # independent per-case acceptance contract
+│   ├── process_resume.py # transactional local progress and new-process worker
+│   ├── resume_experiment.py # real process supervision and prefix acceptance
 │   └── ...             # RDF mapping, entailment, v0.1 strategies
 └── tests/
     ├── test_windows.py
@@ -432,12 +453,19 @@ changing checkpoint schema or earlier placement/strategy contracts. See
 timing evidence; no new reasoning/recovery policy, dependency or CI job. See
 [acceptance hardening](docs/v0.5.2-acceptance.md).
 
-### Candidate v0.6 — process-resume validation (not implemented)
+### v0.6.0 — process-resume validation
 
-Define a new-process resume contract, durable input/served cursors and incremental
-audit persistence before adding live deployment claims. Exact whole-trace identity
-currently supports fixed experiment replay, not an append-only online stream.
-This requires its own failure/delivery semantics, not just another CLI flag.
+Implemented: real parent-terminated worker processes, fresh-process continuation,
+transactional KG state/input/service frontiers, local receipts, incremental audit,
+bounded restart exhaustion and a 40-case prefix acceptance matrix. Existing v0.5
+file checkpoint schema/policies remain unchanged. See [the contract](docs/v0.6-design.md).
+
+### Next boundary — live operation and external delivery (not implemented)
+
+Define external request identity, delivery/acknowledgment semantics, API operation
+and operational observability separately. Current immutable whole-trace identity
+does not support an append-only online stream. No agent/provider or thesis-app
+scope is implied by process resume.
 
 ### Later validation
 - run an established RSP workload (e.g. CityBench);

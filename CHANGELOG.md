@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.6.0 — fixed-trace process resume
+
+- Add real parent-controlled process termination and fresh-process continuation at before-update, after-update, before-commit and after-commit boundaries.
+- Couple validated KG state, filtered input frontier, applied/service cursors, unique local window receipts and incremental audit in SQLite transactions.
+- Bind jobs to exact input/profile/config/trace/request/engine identities; reject mismatched schemas, corrupt prefixes and stale writers without repair.
+- Compare uninterrupted, stop and resume execution, including bounded persistent restart exhaustion, first/last windows and idempotent completed continuation.
+- Retain recursive hashed evidence, launch/exit transcripts, committed receipts, incremental audit exports and failed manifests.
+- Reuse the schema-1 snapshot payload codec without changing v0.5 checkpoint bytes or recovery policies. Keep the v0.5 benchmark label separate from the current package version.
+- Add a bounded v0.6 process matrix to the existing CI job and English delivery/measurement documentation. Use standard-library SQLite; no new package dependency.
+- Local receipt accounting is not external exactly-once delivery, a live/deployed API, a power-loss test, agent/provider integration or the separate MSAI application.
+
 ## v0.5.2 — strict recovery evidence acceptance
 
 - Derive expected audit order and per-window work counters from declared fault boundaries, retry budgets, queries and checkpoint cadence, not observed outcome totals.

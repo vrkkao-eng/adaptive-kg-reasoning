@@ -31,7 +31,7 @@ The bundle fingerprints source; it does not archive a dirty working tree or
 guarantee bit-for-bit timing reproduction. Requirements specify supported ranges,
 not a lockfile. Hashes detect accidental drift, not malicious tampering.
 
-CI uploads fresh v0.2.4 through v0.5.2 bundles and JUnit results for 30 days, including on failure.
+CI uploads fresh v0.2.4 through v0.6.0 bundles and JUnit results for 30 days, including on failure.
 Older experiment scripts still use their documented legacy output paths and are
 retained as historical smoke tests. A version in the changelog denotes a code
 milestone; publication as a Git tag/GitHub Release is a separate operation.
@@ -93,3 +93,23 @@ when replaying, including non-default values. Successful reports exclude host
 timings and should match exactly. Historical schema-1 checkpoints are unchanged;
 older acceptance reports keep their original contract identifier. See
 [strict acceptance details](v0.5.2-acceptance.md).
+
+## v0.6 process-resume replay
+
+```sh
+python experiments/run_v0_6_resume.py --events 300 --width 120 --slide 30 --flush --output-dir results/runs/process-example
+python experiments/run_v0_6_resume.py --input results/runs/process-example/input.csv --profiles results/runs/process-example/profiles.json --width 120 --slide 30 --flush --output-dir results/runs/process-replay
+```
+
+Preserve threshold, node, workload list, dimensions, flush, kill window and restart
+budget as well as exact engine source/dependency versions. Compare acceptance,
+non-timing summaries and each job's receipts/audit. Raw SQLite bytes and process
+exit-code conventions are not portable deterministic outputs. Recursive hashes
+identify the retained nested evidence; SQLite version is recorded separately.
+
+`resume_worker.py --job-dir <existing-job>` continues the authoritative progress
+DB in a fresh process. It differs from replaying the matrix into a new directory.
+After manual continuation, earlier exported receipts/audit and artifact hashes
+describe the earlier bundle only. Never mutate a published bundle and claim its
+original manifest proves the new state. Retain rollback journals with their DB
+and allow SQLite to recover them. See [the process-resume contract](v0.6-design.md).
