@@ -31,7 +31,7 @@ The bundle fingerprints source; it does not archive a dirty working tree or
 guarantee bit-for-bit timing reproduction. Requirements specify supported ranges,
 not a lockfile. Hashes detect accidental drift, not malicious tampering.
 
-CI uploads fresh v0.2.4 through v0.5.1 bundles and JUnit results for 30 days, including on failure.
+CI uploads fresh v0.2.4 through v0.5.2 bundles and JUnit results for 30 days, including on failure.
 Older experiment scripts still use their documented legacy output paths and are
 retained as historical smoke tests. A version in the changelog denotes a code
 milestone; publication as a Git tag/GitHub Release is a separate operation.
@@ -85,3 +85,11 @@ non-zero exit code. Omit `--require-expected-outcomes` when intentionally studyi
 capacity failures; then `acceptance_status=not_requested`. A passed exploratory
 manifest does not imply the declared recovery outcomes met the CI contract.
 See [validation and acceptance details](v0.5.1-validation.md).
+
+Current v0.5.2 runs identify acceptance contract v2, record the checkpoint cadence
+and accounting tolerances, and additionally enforce typed per-window work,
+exact audit protocol and finite/reconciled times. Preserve `--checkpoint-every`
+when replaying, including non-default values. Successful reports exclude host
+timings and should match exactly. Historical schema-1 checkpoints are unchanged;
+older acceptance reports keep their original contract identifier. See
+[strict acceptance details](v0.5.2-acceptance.md).

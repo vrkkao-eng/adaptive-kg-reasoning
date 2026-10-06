@@ -60,6 +60,10 @@ restores an applied-window cursor, replays deltas without re-serving past
 queries, and bounds retries. Resource admission failures remain terminal.
 The coordinator survives fault injection; external acknowledgments are outside
 the checkpoint transaction. [v0.5 design](v0.5-design.md) defines the contract.
+`recovery_acceptance.py` separately derives the expected event/work protocol from
+declared scenarios and validates typed evidence and component accounting after
+measurement. It never runs the worker or repairs results. See the
+[v0.5.2 acceptance contract](v0.5.2-acceptance.md).
 
 ## Original v0.1 baseline
 

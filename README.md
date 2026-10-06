@@ -7,7 +7,7 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.5.1.** The project evaluates materialisation, placement and bounded worker recovery for dynamic KG state. Recovery validation now checks active events, aggregate entities/counts/totals and exact facts, not just the cached answer. CI requires every recovery scenario to meet an explicit service/accounting contract. Earlier strategy and placement experiments remain reproducible. Hashed evidence bundles preserve assumptions, results and end-of-run audit records. This is a code milestone; tags and published releases are tracked separately.
+**Current milestone: v0.5.2.** The project evaluates materialisation, placement and bounded worker recovery for dynamic KG state. Recovery validation checks active events, aggregate entities/counts/totals and exact facts, not just the cached answer. CI acceptance now also requires typed per-window work counts, the declared fault/restore event protocol and consistent component-time accounting. Earlier strategy and placement experiments remain reproducible. Hashed evidence bundles preserve assumptions, results and end-of-run audit records. This is a code milestone; tags and published releases are tracked separately.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
@@ -234,6 +234,23 @@ query accounting, completed/null totals and ordered audit evidence. It writes
 results and a failed manifest. Leave the gate disabled when deliberately exploring
 insufficient resource budgets. See [the validation contract](docs/v0.5.1-validation.md).
 
+### v0.5.2 acceptance hardening
+
+The gate no longer accepts a matching global count when work belongs to the wrong
+window. It derives the expected event order and integer work counts from declared
+queries, faults, retries and checkpoint cadence. Fault boundaries, retry numbers,
+restore cursors, replay targets and publications must agree with that protocol.
+Required counters reject missing fields, booleans, fractional values and negatives.
+Each served window requires a checked state and exactly its served-query checks.
+
+All component times must be finite and non-negative; detail totals reconcile with
+summaries, completed totals with disjoint components, and recovery costs with their
+documented subsets. Timing comparisons permit only floating-point accounting
+roundoff (`rel_tol=1e-9`, `abs_tol_ms=1e-7`), not a speed or latency target.
+`acceptance.json` identifies contract `feasible-bounded-worker-recovery-v2` and
+retains strict-JSON diagnostics on failure. Checkpoint schema and worker semantics
+are unchanged. See [the v0.5.2 acceptance contract](docs/v0.5.2-acceptance.md).
+
 ## Applied AI / FDE evidence boundaries
 
 The original P0–P4 agent roadmap and the KG systems milestones are not equivalent.
@@ -327,6 +344,7 @@ adaptive-kg-reasoning/
 │   ├── v0.4-design.md
 │   ├── v0.5-design.md
 │   ├── v0.5.1-validation.md
+│   ├── v0.5.2-acceptance.md
 │   ├── reproducibility.md
 │   └── technical-review.md
 ├── experiments/
@@ -409,6 +427,10 @@ semantics. See [v0.5 design](docs/v0.5-design.md).
 **v0.5.1:** full recovery support-state checks and explicit CI acceptance, without
 changing checkpoint schema or earlier placement/strategy contracts. See
 [validation and claim boundaries](docs/v0.5.1-validation.md).
+
+**v0.5.2:** typed per-window counters, scenario-derived audit protocol and reconciled
+timing evidence; no new reasoning/recovery policy, dependency or CI job. See
+[acceptance hardening](docs/v0.5.2-acceptance.md).
 
 ### Candidate v0.6 — process-resume validation (not implemented)
 

@@ -1,8 +1,11 @@
 import csv
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
 import sys
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -35,10 +38,11 @@ def test_recovery_bundle_replay_and_hashes(tmp_path):
     assert json.loads((first / "audit.json").read_text()) == json.loads((second / "audit.json").read_text())
     manifest = json.loads((first / "manifest.json").read_text())
     assert manifest["status"] == "passed"
-    assert __version__ == "0.5.1"
+    assert __version__ == "0.5.2"
     assert manifest["benchmark"] == f"v{__version__}" and manifest["acceptance_status"] == "passed"
     acceptance = json.loads((first / "acceptance.json").read_text())
     assert acceptance["status"] == "passed" and len(acceptance["cases"]) == 60
+    assert acceptance["contract"] == "feasible-bounded-worker-recovery-v2"
     assert acceptance == json.loads((second / "acceptance.json").read_text())
     assert manifest["recovery_outcomes"] == {"completed": 12, "recovered": 24,
         "retry_exhausted": 8, "stopped_on_failure": 16}
@@ -116,3 +120,47 @@ def test_empty_input_and_nonfinite_load_fail(tmp_path):
         result = invoke("--input", source, "--faults", "none", "--output-dir", output)
         assert result.returncode != 0
         assert json.loads((output / "manifest.json").read_text())["status"] == "failed"
+
+
+@pytest.mark.parametrize("cadence,fault_window", [(1, 0), (3, 3)])
+def test_cli_passes_declared_cadence_to_acceptance(tmp_path, cadence, fault_window):
+    output = tmp_path / "run"
+    result = invoke("--events", 80, "--width", 30, "--slide", 10, "--flush", "--workloads", "dense",
+                    "--checkpoint-every", cadence, "--fault-window", fault_window,
+                    "--require-expected-outcomes", "--output-dir", output)
+    assert result.returncode == 0, result.stderr
+    report = json.loads((output / "acceptance.json").read_text())
+    assert report["status"] == "passed" and report["checkpoint_every"] == cadence
+
+
+@pytest.mark.parametrize("mutation", ["nan_time", "missing_counter", "audit_bool"])
+def test_strict_gate_failure_preserves_json_and_evidence(tmp_path, monkeypatch, mutation):
+    spec = importlib.util.spec_from_file_location("recovery_cli", ROOT / "experiments/run_v0_5_recovery.py")
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    original = runner.benchmark_recovery
+    def corrupt(*args, **kwargs):
+        detail, summary, audit = original(*args, **kwargs)
+        if mutation == "nan_time":
+            detail[0]["measured_maintenance_ms"] = float("nan")
+        elif mutation == "missing_counter":
+            for row in detail:
+                del row["checkpoint_loads"]
+        else:
+            audit[0]["sequence"] = False
+        return detail, summary, audit
+    monkeypatch.setattr(runner, "benchmark_recovery", corrupt)
+    output = tmp_path / "run"
+    monkeypatch.setattr(sys, "argv", ["run_v0_5_recovery.py", "--events", "40", "--width", "30",
+        "--slide", "10", "--flush", "--workloads", "dense", "--faults", "none",
+        "--require-expected-outcomes", "--output-dir", str(output)])
+    with pytest.raises(AssertionError, match="acceptance failed"):
+        runner.main()
+    manifest = json.loads((output / "manifest.json").read_text())
+    report = json.loads((output / "acceptance.json").read_text())
+    assert manifest["status"] == manifest["acceptance_status"] == report["status"] == "failed"
+    json.dumps(report, allow_nan=False)
+    assert manifest["recovery_outcomes"] == {"completed": 3}
+    assert all((output / name).exists() for name in ("summary.csv", "detail.csv", "audit.json", "workloads.json"))
+    for name, digest in manifest["artifacts_sha256"].items():
+        assert sha256(output / name) == digest

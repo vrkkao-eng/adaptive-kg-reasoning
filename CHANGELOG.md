@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.2 — strict recovery evidence acceptance
+
+- Derive expected audit order and per-window work counters from declared fault boundaries, retry budgets, queries and checkpoint cadence, not observed outcome totals.
+- Check fault locations, retry numbering, cold-start reasons, latest restore cursors, replay targets and checkpoint publications with exact event field types.
+- Require all counter fields as non-negative integers; reject booleans, floats and missing zero fields. Reconcile per-window state/query checks, work counters and published bytes.
+- Require finite non-negative component times, detail/summary reconciliation, disjoint work/completed totals and correct recovery subsets with explicit accounting-roundoff tolerance.
+- Identify acceptance contract v2 while preserving schema-1 checkpoints; retain strict-JSON diagnostics, failed manifests and evidence on gate failure.
+- Add negative mutations, hand-checked protocol expectations, custom cadence, first/last-window faults, persistent faults and failure-artifact regression tests.
+- Update English documentation, package version and the existing CI benchmark label/path. No new dependency, job, algorithm, recovery policy, agent or deployment feature.
+
 ## v0.5.1 — retained-state validation and recovery acceptance
 
 - Close a recovery-check blind spot: validate aggregate entity keys, exact integer counts and finite totals against independent full-window support, even when cached facts still match.
