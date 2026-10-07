@@ -6,7 +6,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from adaptive_kg_reasoning.evidence import sha256
+from adaptive_kg_reasoning.evidence import sha256, source_identity
+
+
+def test_packaging_inputs_are_hashed_but_generated_metadata_is_not(tmp_path):
+    (tmp_path / "src/example.egg-info").mkdir(parents=True)
+    (tmp_path / "src/example.egg-info/PKG-INFO").write_text("generated")
+    (tmp_path / "src/module.py").write_text("source")
+    for name in ("pyproject.toml", "constraints-service.txt", "Dockerfile", ".dockerignore"):
+        (tmp_path / name).write_text("packaging")
+    files = source_identity(tmp_path)["files_sha256"]
+    assert "src/module.py" in files
+    assert not any("egg-info" in name for name in files)
+    assert all(name in files for name in ("pyproject.toml", "constraints-service.txt", "Dockerfile", ".dockerignore"))
 
 
 def invoke(*args):

@@ -37,8 +37,11 @@ def source_identity(root: Path) -> dict:
     files = []
     for name in ("src", "experiments", "tests", "docs", ".github", "queries", "data/ontology", "configs"):
         files.extend(p for p in (root / name).rglob("*")
-                     if p.is_file() and "__pycache__" not in p.parts)
-    files.extend(root / name for name in ("README.md", "CHANGELOG.md", "requirements.txt"))
+                     if p.is_file() and "__pycache__" not in p.parts
+                     and not any(part.endswith(".egg-info") for part in p.parts))
+    files.extend(root / name for name in ("README.md", "CHANGELOG.md", "requirements.txt",
+                                         "requirements-service.txt", "constraints-service.txt",
+                                         "pyproject.toml", "Dockerfile", ".dockerignore"))
     hashes = {p.relative_to(root).as_posix(): sha256(p)
               for p in sorted(files) if p.exists()}
     digest = hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest()

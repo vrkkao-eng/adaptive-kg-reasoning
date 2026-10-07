@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 results/*.tmp
 results/runs/
+*.egg-info/
+build/
+dist/

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=75,<83"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaptive-kg-reasoning"
+dynamic = ["version"]
+description = "Correctness-first fixed-trace KG reasoning and local job operation"
+requires-python = ">=3.12"
+dependencies = ["rdflib>=7.0,<8", "owlrl>=7,<8", "psutil>=5.9,<8"]
+
+[project.optional-dependencies]
+service = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
+test = ["pytest>=8,<10", "httpx>=0.27,<1"]
+
+[project.scripts]
+kg-service = "adaptive_kg_reasoning.api:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "adaptive_kg_reasoning.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+adaptive_kg_reasoning = ["fixtures/*.csv", "fixtures/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

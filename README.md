@@ -7,7 +7,7 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.6.1.** The project evaluates materialisation, placement and recovery for dynamic KG state. A fixed-trace experiment kills real worker processes and resumes in fresh processes using transactional local KG state, input/service cursors and incremental audit records. This patch closes schema-validation gaps, versions line-ending-independent engine identity and preserves bounded failed-launch diagnostics. v0.5.2's exception-recovery policies and strict evidence gate remain separate, reproducible baselines. Hashed evidence, oracle checks and CI expose both completed service and retained terminal prefixes. Local receipts are not external exactly-once delivery. This is a code milestone; tags and published releases are tracked separately.
+**Current milestone: v0.7.0.** A bounded local HTTP job service now wraps the correctness-checked fixed-trace KG worker: durable idempotency, explicit resume, lifetime ownership, controller-restart reconciliation, operational progress/events/metrics and immutable attempt evidence. Packaging and non-root persistent-container verification extend the original evaluation/recovery evidence into local operation. The v0.5.2 exception and v0.6.1 process acceptance matrices remain separate reproducible baselines. Local receipts are not external exactly-once delivery; this unauthenticated demo is not a public production service. Tags/releases are tracked separately.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
@@ -18,6 +18,8 @@
 | **Adaptive decisions** | Prior-demand policy, explicit bootstrap/switch costs, dense/sparse/bursty/idle comparisons; model units separate from timings |
 | **Resource-aware placement** | Three fixed baselines, estimate-only selection, explicit budget failures and byte/RTT accounting; simulated milliseconds separate from host measurements |
 | **Failure recovery** | v0.5 bounded exception recovery plus v0.6 real process kills, new-process resume, transactional local receipts/cursors and explicit expected-prefix gates |
+| **Operational ownership** | v0.7 durable keys/intents, lifetime OS locks, token fencing and actual controller-death/live-orphan tests |
+| **Local service operation** | Strict HTTP schema, real loopback tests, readiness, metrics, non-root installed container and persistent-volume restart/oracle checker |
 | **Research discipline** | Explicit limitations; environment-specific timings are not presented as general performance claims |
 
 The core question is:
@@ -35,6 +37,20 @@ This repository is a technical bridge from ontology / Knowledge Graph engineerin
 > **Technical reviewers:** see [`docs/technical-review.md`](docs/technical-review.md) for a concise map from common architecture, correctness, evaluation and production-readiness questions to repository evidence.
 
 ## Quick verification
+
+For a five-minute service review, install optional extras and start the loopback
+demo in one terminal, then run its HTTP checker in another:
+
+```bash
+pip install -c constraints-service.txt ".[service,test]"
+kg-service --root results/runs/service-demo
+# Another terminal:
+python experiments/service_smoke.py
+```
+
+See [operations](docs/operations.md) for containers, endpoints, recovery and
+security boundaries, and [v0.7 design](docs/v0.7-design.md) for ownership/evidence.
+The original dependency-only installation and comparative checks still work:
 
 ```bash
 python -m venv .venv
@@ -289,16 +305,18 @@ completed enterprise agent application:
 | Priority | Evidence already present | Not implemented here |
 | --- | --- | --- |
 | P0 Evaluation | Deterministic KG oracle, aligned baselines, state/answer checks, recovery acceptance | Agent answer quality, groundedness, LLM/provider comparisons |
-| P1 Observability | Run manifests, component metrics, v0.6 incremental transactional audit | Live traces, metrics backend, dashboard, supervisor-crash export recovery |
-| P2 Recovery | Worker exceptions plus real process termination/resume with durable local frontiers | External delivery guarantees, tool/API timeout/backoff, escalation, deployed service |
-| P3 Security/auditability | Input/source/artifact hashes, checkpoint integrity and identity | Authentication, authorization, secret controls, tamper-evident audit |
+| P1 Observability | Manifests, component metrics, transactional audit, v0.7 progress/events/metrics and request/job/attempt IDs | Distributed traces, metrics backend, dashboard, monitoring SLOs |
+| P2 Recovery | Exceptions/process kills, durable frontiers, v0.7 controller restart/live-orphan ownership and bounded explicit resume | External delivery, remote tool backoff/escalation, distributed supervision |
+| P3 Security/auditability | Hashes/identity, strict request limits, server-owned fixtures, non-root local container, immutable attempt evidence | Authentication, authorization, secret controls, signed/tamper-evident audit |
 | P4 Advanced agents | No agent feature is claimed | Jev integration, ReAct/planning, agent tools and governance |
 
 The evidence chain is **operational problem → explicit contract → aligned
-baselines → oracle/regression checks → CI → reproducible local evidence**.
-Real deployment/API operation is still missing; the edge/fog/cloud experiment is
-a simulation. The MSAI thesis demonstration remains a separate application
-direction. This patch introduces no new repo, provider or research algorithm.
+baselines → oracle/regression checks → CI → reproducible local evidence →
+bounded HTTP/container operation**. Public/cloud production deployment is not
+implemented; edge/fog/cloud placement remains a simulation. The MSAI thesis
+demonstration is a separate application direction. No new repo/provider/research
+algorithm is introduced. Jev would be a future provider/baseline within an
+explicitly scoped agent evaluation track here, not a new repository or v0.7 claim.
 
 ## Data
 
@@ -376,6 +394,8 @@ adaptive-kg-reasoning/
 │   ├── v0.5.2-acceptance.md
 │   ├── v0.6-design.md
 │   ├── v0.6.1-hardening.md
+│   ├── v0.7-design.md
+│   ├── operations.md
 │   ├── reproducibility.md
 │   └── technical-review.md
 ├── experiments/
@@ -389,6 +409,8 @@ adaptive-kg-reasoning/
 │   ├── run_v0_4_placement.py
 │   ├── run_v0_5_recovery.py
 │   ├── run_v0_6_resume.py
+│   ├── service_smoke.py
+│   ├── container_service_check.py
 │   └── resume_worker.py
 ├── queries/
 ├── results/
@@ -407,6 +429,12 @@ adaptive-kg-reasoning/
 │   ├── recovery_acceptance.py # independent per-case acceptance contract
 │   ├── process_resume.py # transactional local progress and new-process worker
 │   ├── resume_experiment.py # real process supervision and prefix acceptance
+│   ├── worker_ownership.py # kernel lifetime locks and owned process termination
+│   ├── jobs.py           # durable intent, bounded controller and reconciliation
+│   ├── job_registry.py   # idempotency/lifecycle/events SQLite registry
+│   ├── job_status.py     # bounded operational progress reads
+│   ├── service_worker.py # trusted child and immutable attempt export
+│   ├── api.py            # optional loopback HTTP adapter
 │   └── ...             # RDF mapping, entailment, v0.1 strategies
 └── tests/
     ├── test_windows.py
@@ -478,10 +506,18 @@ file checkpoint schema/policies remain unchanged. See [the contract](docs/v0.6-d
 bounded failed-launch/aborted-matrix evidence; no new recovery policy or service.
 See [hardening](docs/v0.6.1-hardening.md).
 
-### Next boundary — live operation and external delivery (not implemented)
+### v0.7.0 — bounded local job operation
 
-Define external request identity, delivery/acknowledgment semantics, API operation
-and operational observability separately. Current immutable whole-trace identity
+Implemented: optional HTTP package, approved fixed-trace jobs, durable idempotency,
+single-slot kernel ownership, token-fenced restart reconciliation, explicit resume,
+bounded operational reads/events/metrics and immutable attempt evidence. Local
+container checks verify non-root operation, volume restart and offline oracle.
+See [design](docs/v0.7-design.md) and [operations](docs/operations.md).
+
+### Next boundary — secured operation and external delivery (not implemented)
+
+Define authentication/authorization, remote effect/acknowledgment semantics,
+orphan supervision and observability backends separately. Current whole-trace identity
 does not support an append-only online stream. No agent/provider or thesis-app
 scope is implied by process resume.
 

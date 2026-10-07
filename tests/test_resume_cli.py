@@ -40,7 +40,7 @@ def test_full_matrix_replay_and_nested_evidence(tmp_path):
     assert rows(first / "summary.csv") == rows(replay / "summary.csv")
     manifest = assert_hashes(first)
     assert manifest["status"] == manifest["acceptance_status"] == "passed"
-    assert manifest["benchmark"] == "v0.6.1" and manifest["package_version"] == "0.6.1"
+    assert manifest["benchmark"] == "v0.6.1" and manifest["package_version"] == "0.7.0"
     assert manifest["completed_cases"] == 40 and manifest["environment"]["sqlite"]
     assert manifest["generated"] and manifest["generator_seed"] == 42
     assert len(rows(first / "summary.csv")) == 40

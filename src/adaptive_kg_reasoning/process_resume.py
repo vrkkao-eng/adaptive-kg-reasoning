@@ -19,13 +19,14 @@ from .recompute import RecomputeWindowResult, recompute_window
 from .recovery import check_state, trace_identity
 from .resources import MemoryModel, NodeProfile, nonnegative_int
 from .windows import WindowTransition, iter_sliding_windows, load_events
+from .worker_ownership import FileLock
 
 CONTRACT = "fixed-trace-process-resume-v2"
 ENGINE_FINGERPRINT = "utf8-crlf-to-lf-v1"
 POINTS = ("before_update", "after_update", "before_commit", "after_commit")
 ENGINE_FILES = ("adaptive.py", "checkpoint.py", "incremental.py", "placement.py",
                 "process_resume.py", "recompute.py", "recovery.py", "resources.py",
-                "windows.py", "namespaces.py", "network_cost.py", "metrics.py")
+                "windows.py", "namespaces.py", "network_cost.py", "metrics.py", "worker_ownership.py")
 SCHEMA_SQL = {
     "progress": """CREATE TABLE progress (
         singleton INTEGER PRIMARY KEY CHECK(singleton=1), identity TEXT NOT NULL,
@@ -316,6 +317,11 @@ class ResumeStore:
 
 def run_worker(directory: Path, *, hook=lambda point, index: None):
     """Resume only uncommitted windows; successful no-op completion writes nothing."""
+    with FileLock(directory / "worker.lock"):
+        return _run_owned_worker(directory, hook=hook)
+
+
+def _run_owned_worker(directory: Path, *, hook):
     job = load_job(directory)
     store = ResumeStore(job)
     try:
