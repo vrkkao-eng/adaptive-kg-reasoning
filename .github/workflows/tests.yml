@@ -75,6 +75,8 @@ jobs:
           python-version: "3.12"
       - name: Install optional service and test extras
         run: pip install -c constraints-service.txt ".[service,test]"
+      - name: Initialize service evidence directory
+        run: python -c "from pathlib import Path; Path('results/runs').mkdir(parents=True, exist_ok=True)"
       - name: Verify service, API and actual controller/worker restart boundaries
         run: pytest -q tests/test_job_service.py tests/test_job_api.py tests/test_job_restart.py tests/test_job_http.py --basetemp=results/runs/service-tmp --junitxml=results/runs/service-tests.xml
       - name: Build non-root local service image
@@ -98,6 +100,8 @@ jobs:
           python-version: "3.12"
       - name: Install constrained core test environment
         run: pip install -r requirements.txt -c constraints-service.txt
+      - name: Initialize Windows service evidence directory
+        run: python -c "from pathlib import Path; Path('results/runs').mkdir(parents=True, exist_ok=True)"
       - name: Verify Windows worker ownership and controller restart
         run: pytest -q tests/test_job_service.py tests/test_job_restart.py --basetemp=results/runs/windows-service-tmp --junitxml=results/runs/windows-service-tests.xml
       - name: Preserve Windows test evidence
