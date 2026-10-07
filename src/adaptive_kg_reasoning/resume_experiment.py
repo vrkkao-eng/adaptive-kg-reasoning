@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from queue import Queue, Empty
 import subprocess
@@ -10,49 +11,132 @@ import threading
 import time
 
 from .checkpoint import canonical_bytes
-from .process_resume import inspect_job, load_job, POINTS
+from .process_resume import inspect_job, load_job, read_json, POINTS
 from .resources import nonnegative_int
 
 
+OUTPUT_LIMIT = 16384
+
+
+class WorkerLaunchError(RuntimeError):
+    """Unexpected launch outcome with bounded, exportable diagnostic evidence."""
+    def __init__(self, message, record):
+        super().__init__(message)
+        self.record = record
+
+
+class WorkerTimeoutError(WorkerLaunchError, TimeoutError):
+    """A worker exceeded a bounded rendezvous or completion wait."""
+
+
+class _OutputCapture:
+    def __init__(self):
+        self.data = bytearray()
+        self.total = 0
+        self.error = None
+
+    def add(self, block):
+        self.total += len(block)
+        self.data.extend(block[:max(0, OUTPUT_LIMIT - len(self.data))])
+
+    def read(self, stream, lines=None):
+        sent = False
+        try:
+            if lines is not None:
+                first = stream.readline(OUTPUT_LIMIT + 1)
+                self.add(first)
+                lines.put(first)
+                sent = True
+            for block in iter(lambda: stream.read(4096), b""):
+                self.add(block)
+        except (OSError, ValueError) as exc:
+            self.error = f"{type(exc).__name__}: {exc}"
+        finally:
+            if lines is not None and not sent:
+                lines.put(None)
+
+    def fields(self, name):
+        return {name: self.data.decode("utf-8", errors="replace"),
+                name + "_bytes": self.total, name + "_truncated": self.total > OUTPUT_LIMIT,
+                name + "_capture_error": self.error}
+
+
 def launch_worker(script: Path, directory: Path, *, point=None, window=2, timeout=60):
+    nonnegative_int("window", window)
+    if point is not None and point not in POINTS:
+        raise ValueError("Unknown kill point")
+    if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("Expected a positive finite worker timeout")
     command = [sys.executable, str(script), "--job-dir", str(directory)]
     if point:
         command += ["--pause-point", point, "--pause-window", str(window)]
     start = time.perf_counter()
-    process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, text=True)
+    process, readers = None, []
+    stdout, stderr = _OutputCapture(), _OutputCapture()
     lines = Queue()
-    reader = threading.Thread(target=lambda: lines.put(process.stdout.readline()), daemon=True)
-    reader.start()
-    killed, first = False, ""
+    killed, cleanup_killed, failure = False, False, None
+    stage = "spawn"
     try:
-        try:
-            first = lines.get(timeout=timeout)
-        except Empty as exc:
-            raise TimeoutError("Worker did not reach its bounded rendezvous") from exc
+        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        for capture, stream, queue in ((stdout, process.stdout, lines), (stderr, process.stderr, None)):
+            reader = threading.Thread(target=capture.read, args=(stream, queue), daemon=True)
+            reader.start()
+            readers.append(reader)
+        stage = "rendezvous"
+        first = lines.get(timeout=timeout)
+        if first is None:
+            raise ValueError("Could not capture the worker rendezvous")
         if point:
             expected = {"event": "kill_ready", "point": point, "window_index": window}
-            if json.loads(first or "null") != expected:
-                _, error = process.communicate(timeout=timeout)
-                raise RuntimeError(f"Worker failed before kill boundary: {error}")
+            if len(first) > OUTPUT_LIMIT or canonical_bytes(read_json(first or b"null")) != canonical_bytes(expected):
+                raise ValueError("Worker failed before kill boundary: invalid rendezvous marker")
             process.kill()
             killed = True
-        output, error = process.communicate(timeout=timeout)
+        stage = "completion"
+        process.wait(timeout=timeout)
         if not killed and process.returncode != 0:
-            raise RuntimeError(f"Worker failed: {error}")
+            failure = ("child_exit", "Worker failed with a non-zero exit code")
         if killed and process.returncode == 0:
-            raise AssertionError("Terminated worker unexpectedly succeeded")
-        return {"termination": "parent_kill" if killed else "normal", "returncode": process.returncode,
-                "stdout": first + output, "stderr": error,
-                "process_wall_ms": (time.perf_counter() - start) * 1000}
+            failure = ("termination_error", "Terminated worker unexpectedly succeeded")
+    except (Empty, subprocess.TimeoutExpired):
+        failure = ("timeout", f"Worker exceeded its bounded {stage} wait")
+    except ValueError as exc:
+        failure = ("protocol_error", str(exc))
+    except Exception as exc:
+        failure = ("spawn_error" if process is None else "process_control_error", f"{type(exc).__name__}: {exc}")
     finally:
-        if process.poll() is None:
-            process.kill()
-            process.communicate(timeout=10)
-        reader.join(timeout=1)
-        for stream in (process.stdin, process.stdout, process.stderr):
-            if stream is not None:
-                stream.close()
+        if process is not None:
+            if process.poll() is None:
+                try:
+                    process.kill()
+                    cleanup_killed = True
+                    process.wait(timeout=10)
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    failure = ("cleanup_error", f"Could not reap worker: {exc}")
+            for reader in readers:
+                reader.join(timeout=1)
+            process.stdin.close()
+            # The fixed worker has no descendants. If an unexpected descendant
+            # retains a pipe, avoid blocking on closing a reader-held stream.
+            for index, stream in enumerate((process.stdout, process.stderr)):
+                if index >= len(readers) or not readers[index].is_alive():
+                    stream.close()
+    incomplete = any(reader.is_alive() for reader in readers)
+    if not failure and (incomplete or stdout.error or stderr.error):
+        failure = ("capture_error", "Worker output capture did not complete")
+    record = {"termination": "parent_kill" if killed else ("cleanup_kill" if cleanup_killed else
+              ("spawn_error" if process is None else "normal")),
+              "returncode": process.returncode if process is not None else None,
+              "requested_point": point, "window_index": window if point else None,
+              **stdout.fields("stdout"), **stderr.fields("stderr"), "output_incomplete": incomplete,
+              "process_wall_ms": (time.perf_counter() - start) * 1000,
+              "failure_category": failure[0] if failure else None,
+              "error": failure[1] if failure else None}
+    if failure:
+        error_type = WorkerTimeoutError if failure[0] == "timeout" else WorkerLaunchError
+        raise error_type(f"{failure[1]}: {record['stderr']}", record)
+    return record
 
 
 def expected_case(job, *, point, policy, fault_window, max_restarts, persistent):
@@ -102,12 +186,25 @@ def execute_case(script: Path, directory: Path, *, point=None, policy="resume", 
     launches, kills = [], 0
     while True:
         killing = point is not None and (persistent or not kills)
-        row = launch_worker(script, directory, point=point if killing else None,
-                            window=fault_window, timeout=timeout)
-        row["cursor"] = inspect_job(directory)["cursor"]
+        launch_error = None
+        try:
+            row = launch_worker(script, directory, point=point if killing else None,
+                                window=fault_window, timeout=timeout)
+        except WorkerLaunchError as exc:
+            row, launch_error = exc.record, exc
+        row.update(job_id=directory.name, launch_number=len(launches) + 1)
+        try:
+            row["cursor"] = inspect_job(directory)["cursor"]
+            row["frontier_error"] = None
+        except Exception as exc:
+            row.update(cursor=None, frontier_error=f"{type(exc).__name__}: {exc}")
+            if launch_error is None:
+                launch_error = exc
         launches.append(row)
         (directory / "supervisor.json").write_text(json.dumps(launches, indent=2, allow_nan=False) + "\n",
                                                    encoding="utf-8")
+        if launch_error is not None:
+            raise launch_error
         if not killing:
             status = "completed" if point is None else "resumed"
             break

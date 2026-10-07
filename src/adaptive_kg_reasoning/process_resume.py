@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import shutil
 import sqlite3
 
@@ -19,11 +20,34 @@ from .recovery import check_state, trace_identity
 from .resources import MemoryModel, NodeProfile, nonnegative_int
 from .windows import WindowTransition, iter_sliding_windows, load_events
 
-CONTRACT = "fixed-trace-process-resume-v1"
+CONTRACT = "fixed-trace-process-resume-v2"
+ENGINE_FINGERPRINT = "utf8-crlf-to-lf-v1"
 POINTS = ("before_update", "after_update", "before_commit", "after_commit")
 ENGINE_FILES = ("adaptive.py", "checkpoint.py", "incremental.py", "placement.py",
                 "process_resume.py", "recompute.py", "recovery.py", "resources.py",
                 "windows.py", "namespaces.py", "network_cost.py", "metrics.py")
+SCHEMA_SQL = {
+    "progress": """CREATE TABLE progress (
+        singleton INTEGER PRIMARY KEY CHECK(singleton=1), identity TEXT NOT NULL,
+        applied_cursor INTEGER NOT NULL, served_cursor INTEGER NOT NULL,
+        input_cursor INTEGER NOT NULL CHECK(input_cursor>=0),
+        state_json TEXT, state_sha256 TEXT
+    ) STRICT""",
+    "receipts": """CREATE TABLE receipts (
+        window_index INTEGER PRIMARY KEY, input_cursor INTEGER NOT NULL,
+        queries INTEGER NOT NULL CHECK(queries>=0), answer_sha256 TEXT NOT NULL
+    ) STRICT""",
+    "audit": "CREATE TABLE audit (sequence INTEGER PRIMARY KEY, payload TEXT NOT NULL) STRICT",
+}
+
+
+def schema_signature(sql):
+    """Accept only the generated DDL, ignoring whitespace and keyword case.
+
+    This is deliberately not a general SQL semantic-equivalence parser. There
+    are no string literals in this contract; unknown definitions fail closed.
+    """
+    return re.sub(r"\s+", "", sql).lower().rstrip(";")
 
 
 class ResumeError(ValueError):
@@ -51,9 +75,12 @@ def read_json(value):
     return json.loads(value, object_pairs_hook=unique, parse_constant=reject_constant)
 
 
-def engine_hashes():
-    root = Path(__file__).parent
-    return {name: sha256(root / name) for name in ENGINE_FILES}
+def engine_hashes(root: Path | None = None):
+    root = root or Path(__file__).parent
+    # Only CRLF -> LF is ignored. Comments, whitespace and semantic edits still
+    # change identity. Raw source/artifact hashes remain in the run manifest.
+    return {name: hashlib.sha256((root / name).read_bytes().decode("utf-8")
+            .replace("\r\n", "\n").encode("utf-8")).hexdigest() for name in ENGINE_FILES}
 
 
 @dataclass
@@ -73,9 +100,11 @@ def load_job(directory: Path) -> ResumeJob:
     """Re-derive the entire fixed trace independently of the persisted state."""
     config = read_json((directory / "job.json").read_text(encoding="utf-8"))
     fields = {"contract", "width", "slide", "flush", "threshold", "workload", "node",
-              "input_sha256", "profiles_sha256", "engine_sha256"}
+              "input_sha256", "profiles_sha256", "engine_sha256", "engine_fingerprint"}
     if not isinstance(config, dict) or set(config) != fields or config["contract"] != CONTRACT:
         raise ResumeError("Unknown job contract or fields")
+    if config["engine_fingerprint"] != ENGINE_FINGERPRINT:
+        raise ResumeError("Unsupported engine fingerprint contract")
     for name in ("width", "slide"):
         nonnegative_int(name, config[name])
         if not config[name]:
@@ -122,28 +151,18 @@ def prepare_job(directory: Path, *, input_path: Path, profiles_path: Path, width
     config = {"contract": CONTRACT, "width": width, "slide": slide, "flush": flush,
               "threshold": threshold, "workload": workload, "node": node,
               "input_sha256": sha256(directory / "input.csv"),
-              "profiles_sha256": sha256(directory / "profiles.json"), "engine_sha256": engine_hashes()}
+              "profiles_sha256": sha256(directory / "profiles.json"), "engine_sha256": engine_hashes(),
+              "engine_fingerprint": ENGINE_FINGERPRINT}
     (directory / "job.json").write_bytes(canonical_bytes(config) + b"\n")
     job = load_job(directory)
     connection = sqlite3.connect(directory / "progress.sqlite", isolation_level=None)
     try:
         connection.execute("PRAGMA journal_mode=DELETE")
         connection.execute("PRAGMA synchronous=FULL")
-        connection.executescript("""
-            BEGIN IMMEDIATE;
-            PRAGMA user_version=1;
-            CREATE TABLE progress (
-                singleton INTEGER PRIMARY KEY CHECK(singleton=1), identity TEXT NOT NULL,
-                applied_cursor INTEGER NOT NULL, served_cursor INTEGER NOT NULL,
-                input_cursor INTEGER NOT NULL CHECK(input_cursor>=0),
-                state_json TEXT, state_sha256 TEXT
-            ) STRICT;
-            CREATE TABLE receipts (
-                window_index INTEGER PRIMARY KEY, input_cursor INTEGER NOT NULL,
-                queries INTEGER NOT NULL CHECK(queries>=0), answer_sha256 TEXT NOT NULL
-            ) STRICT;
-            CREATE TABLE audit (sequence INTEGER PRIMARY KEY, payload TEXT NOT NULL) STRICT;
-        """)
+        connection.execute("BEGIN IMMEDIATE")
+        connection.execute("PRAGMA user_version=1")
+        for sql in SCHEMA_SQL.values():
+            connection.execute(sql)
         connection.execute("INSERT INTO progress VALUES (1, ?, -1, -1, 0, NULL, NULL)", (job.identity,))
         connection.commit()
     finally:
@@ -165,6 +184,11 @@ class ResumeStore:
             objects = set(self.connection.execute("SELECT type, name FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'"))
             if objects != {("table", name) for name in ("progress", "receipts", "audit")}:
                 raise ResumeError("Unexpected progress schema objects")
+            definitions = dict(self.connection.execute(
+                "SELECT name, sql FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
+            if any(schema_signature(definitions[name]) != schema_signature(expected)
+                   for name, expected in SCHEMA_SQL.items()):
+                raise ResumeError("Unexpected progress schema constraints or definition")
             strict_tables = {row[1] for row in self.connection.execute("PRAGMA table_list")
                              if row[0] == "main" and row[5] == 1}
             if strict_tables != {"progress", "receipts", "audit"}:
@@ -199,11 +223,12 @@ class ResumeStore:
         db, job = self.connection, self.job
         db.execute("BEGIN")
         try:
-            rows = db.execute("SELECT identity, applied_cursor, served_cursor, input_cursor, state_json, state_sha256 FROM progress").fetchall()
+            rows = db.execute("SELECT singleton, identity, applied_cursor, served_cursor, input_cursor, state_json, state_sha256 FROM progress").fetchall()
             if len(rows) != 1:
                 raise ResumeError("Expected one progress record")
-            identity, cursor, served, offset, payload, checksum = rows[0]
-            if (identity != job.identity or type(cursor) is not int or not -1 <= cursor < len(job.windows)
+            singleton, identity, cursor, served, offset, payload, checksum = rows[0]
+            if (type(singleton) is not int or singleton != 1
+                    or identity != job.identity or type(cursor) is not int or not -1 <= cursor < len(job.windows)
                     or type(served) is not int or served != cursor or type(offset) is not int
                     or offset != (job.input_offsets[cursor] if cursor >= 0 else 0)):
                 raise ResumeError("Progress identity or input/applied/served cursor mismatch")

@@ -31,7 +31,7 @@ The bundle fingerprints source; it does not archive a dirty working tree or
 guarantee bit-for-bit timing reproduction. Requirements specify supported ranges,
 not a lockfile. Hashes detect accidental drift, not malicious tampering.
 
-CI uploads fresh v0.2.4 through v0.6.0 bundles and JUnit results for 30 days, including on failure.
+CI uploads fresh v0.2.4 through v0.6.1 bundles and JUnit results for 30 days, including on failure.
 Older experiment scripts still use their documented legacy output paths and are
 retained as historical smoke tests. A version in the changelog denotes a code
 milestone; publication as a Git tag/GitHub Release is a separate operation.
@@ -113,3 +113,22 @@ After manual continuation, earlier exported receipts/audit and artifact hashes
 describe the earlier bundle only. Never mutate a published bundle and claim its
 original manifest proves the new state. Retain rollback journals with their DB
 and allow SQLite to recover them. See [the process-resume contract](v0.6-design.md).
+
+### v0.6.1 identity and failure evidence
+
+New jobs use `fixed-trace-process-resume-v2` and explicit fingerprint algorithm
+`utf8-crlf-to-lf-v1`. CRLF versus LF engine files yield the same job identity;
+other source edits remain mismatches. Manifests still hash exact raw source and
+artifact bytes, so these hashes may differ across equivalent newline checkouts.
+Runtime/dependency equivalence remains a reproduction prerequisite, not an
+automatic migration or cross-version compatibility guarantee.
+
+Do not resume a v0.6.0/v1 job by editing its config or checksums. Retain the
+original engine/environment for continuation, or copy its immutable input/profile
+to a new matrix directory with the recorded semantic arguments. No old progress
+is migrated by the current worker.
+
+Unexpected launch failures retain `supervisor.json` when a launch was attempted.
+An aborted matrix always retains `acceptance.json` with `status=not_evaluated`,
+the completed evaluated prefix and error/aborted-case context. A complete gate
+with mismatches retains `failed`. See [v0.6.1 details](v0.6.1-hardening.md).

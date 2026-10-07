@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.6.1 — process-resume integrity and failure evidence
+
+- Validate the complete generated SQLite DDL, including primary-key, NOT NULL and CHECK constraints; independently reject invalid progress singleton values before new commits.
+- Version the job identity as `fixed-trace-process-resume-v2` with `utf8-crlf-to-lf-v1` engine fingerprints. Normalize only CRLF to LF for engine identity; preserve raw source/input/artifact hashes for provenance and enforce LF checkout for Python files.
+- Reject old/unknown identity contracts without rewriting jobs. v0.6.0 jobs require the original engine/environment or a fresh reproduction; SQLite user version 1 and v0.5 checkpoint payloads remain unchanged.
+- Retain bounded stdout/stderr, exit codes, failure categories, launch context and validated/null frontiers for unexpected child exits, protocol errors, timeouts and process creation failures. Drain both pipes to avoid diagnostic-output deadlocks.
+- Reject malformed rendezvous markers, duplicate keys, bool/float window indices and non-finite JSON. Continue killing/reaping unexpected or stuck children without treating them as accepted fault scenarios.
+- Export `acceptance.json` with `not_evaluated` and the completed prefix/aborted case when the full matrix cannot run. Keep gate mismatches `failed`, not `not_evaluated`; no terminal manifest retains `pending`.
+- Add schema, portability, diagnostic-output, timeout, protocol and partial-matrix regressions; update the existing CI matrix label/path and English documentation without new dependencies or jobs.
+- No API, worker ownership service, live status endpoint, dashboard, agent/provider or external-delivery guarantee is added.
+
 ## v0.6.0 — fixed-trace process resume
 
 - Add real parent-controlled process termination and fresh-process continuation at before-update, after-update, before-commit and after-commit boundaries.

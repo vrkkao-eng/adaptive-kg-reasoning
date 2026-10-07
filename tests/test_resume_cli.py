@@ -40,7 +40,7 @@ def test_full_matrix_replay_and_nested_evidence(tmp_path):
     assert rows(first / "summary.csv") == rows(replay / "summary.csv")
     manifest = assert_hashes(first)
     assert manifest["status"] == manifest["acceptance_status"] == "passed"
-    assert manifest["benchmark"] == "v0.6.0" and manifest["package_version"] == "0.6.0"
+    assert manifest["benchmark"] == "v0.6.1" and manifest["package_version"] == "0.6.1"
     assert manifest["completed_cases"] == 40 and manifest["environment"]["sqlite"]
     assert manifest["generated"] and manifest["generator_seed"] == 42
     assert len(rows(first / "summary.csv")) == 40
@@ -83,7 +83,18 @@ def test_invalid_or_infeasible_matrix_retains_failed_manifest(tmp_path, scenario
     assert result.returncode != 0
     manifest = assert_hashes(output)
     assert manifest["status"] == "failed" and manifest["error"]
-    assert manifest["acceptance_status"] != "passed"
+    assert manifest["acceptance_status"] == "not_evaluated"
+    acceptance = json.loads((output / "acceptance.json").read_text())
+    assert acceptance["status"] == "not_evaluated" and acceptance["error"]
+    assert acceptance["completed_cases"] == manifest["completed_cases"]
+    if scenario == "capacity":
+        transcript = json.loads((output / "none-none/supervisor.json").read_text())
+        assert len(transcript) == 1
+        launch = transcript[0]
+        assert launch["failure_category"] == "child_exit" and launch["returncode"] != 0
+        assert "memory_budget_exceeded" in launch["stderr"]
+        assert launch["cursor"] == -1 and launch["launch_number"] == 1
+        assert acceptance["aborted_case"] == {"workload": "none", "scenario": "none"}
     assert not (tmp_path / "escape").exists()
 
 
