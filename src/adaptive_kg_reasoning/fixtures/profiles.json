@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {"name": "edge", "memory_budget_bytes": 65536, "update_ms_per_event": 0.05, "refresh_ms_per_entity": 0.02, "read_ms_per_fact": 0.005, "query_base_ms": 0.05},
+    {"name": "fog", "memory_budget_bytes": 1048576, "update_ms_per_event": 0.01, "refresh_ms_per_entity": 0.005, "read_ms_per_fact": 0.001, "query_base_ms": 0.01},
+    {"name": "cloud", "memory_budget_bytes": 268435456, "update_ms_per_event": 0.002, "refresh_ms_per_entity": 0.001, "read_ms_per_fact": 0.0002, "query_base_ms": 0.002}
+  ],
+  "links": [
+    {"a": "edge", "b": "fog", "rtt_ms": 4, "bandwidth_bytes_per_second": 1250000},
+    {"a": "edge", "b": "cloud", "rtt_ms": 40, "bandwidth_bytes_per_second": 625000},
+    {"a": "fog", "b": "cloud", "rtt_ms": 20, "bandwidth_bytes_per_second": 12500000}
+  ],
+  "memory": {"base_bytes": 4096, "bytes_per_event": 128, "bytes_per_entity": 128, "bytes_per_fact": 256},
+  "scenarios": [{"name":"service_fixture","source":"edge","client":"edge","estimate":{"windows":8,"active_events":12,"distinct_entities":2,"added_events":2,"expired_events":2,"affected_entities":2,"queries_per_window":8,"result_facts":2,"event_payload_bytes":160,"fact_payload_bytes":160}}]
+}

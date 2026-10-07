@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.7.0 — bounded local job service
+
+- Package an optional FastAPI/Uvicorn service with approved fixtures, strict bounded requests, durable idempotency, submit/status/resume and paginated receipts/events.
+- Add exact-schema/runtime-bound registry, durable preparation/start intent, token fencing, kernel lifetime locks and one execution slot. Preserve live orphan ownership across controller death; require explicit bounded resume.
+- Hold core per-job ownership before validation through execution. Lock code becomes an engine fingerprint input; old jobs need their original engine or fresh reproduction, not silent migration.
+- Separate lightweight progress reads from offline oracle checks; add request/job/attempt correlation, fixed errors, accounting metrics and immutable snapshots, including reconciled stopped prefixes.
+- Retain bounded diagnostics and handle owned Windows Python redirector descendants. Never reclaim unrelated/orphan processes by PID.
+- Add non-root digest-pinned container, optional dependency constraints, real HTTP/volume-restart/oracle checker and separate Linux service/container and Windows ownership CI jobs.
+- Preserve v0.5/v0.6 comparative contracts. No online stream, external exactly-once delivery, authentication, dashboard, Jev/agent or separate MSAI application.
+
 ## v0.6.1 — process-resume integrity and failure evidence
 
 - Validate the complete generated SQLite DDL, including primary-key, NOT NULL and CHECK constraints; independently reject invalid progress singleton values before new commits.

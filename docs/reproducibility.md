@@ -1,5 +1,11 @@
 # Reproducing benchmark evidence
 
+For v0.7 packaged service/container verification, see [operations](operations.md).
+Service roots bind exact runtime and normalized engine/service sources; they are
+not portable across arbitrary upgrades. Attempt manifests retain raw artifact
+hashes and runtime fingerprints. Comparative benchmark labels remain protocol
+versions even when the package version advances to 0.7.0.
+
 The v0.2.4 runner preserves the v0.2.3 comparison and CSV metrics. New runs go
 to unique `results/runs/<uuid>/` directories; committed historical results are
 never overwritten by this runner. `--output-dir` must name a new directory.

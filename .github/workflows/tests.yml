@@ -64,3 +64,45 @@ jobs:
           path: results/runs/
           if-no-files-found: error
           retention-days: 30
+
+  service:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install optional service and test extras
+        run: pip install -c constraints-service.txt ".[service,test]"
+      - name: Verify service, API and actual controller/worker restart boundaries
+        run: pytest -q tests/test_job_service.py tests/test_job_api.py tests/test_job_restart.py tests/test_job_http.py --basetemp=results/runs/service-tmp --junitxml=results/runs/service-tests.xml
+      - name: Build non-root local service image
+        run: docker build -t adaptive-kg-service:v070 .
+      - name: Verify container and persistent-volume restart
+        run: python experiments/container_service_check.py --output-dir results/runs/v070-container
+      - name: Preserve service diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          path: results/runs/
+
+  windows-ownership:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install constrained core test environment
+        run: pip install -r requirements.txt -c constraints-service.txt
+      - name: Verify Windows worker ownership and controller restart
+        run: pytest -q tests/test_job_service.py tests/test_job_restart.py --basetemp=results/runs/windows-service-tmp --junitxml=results/runs/windows-service-tests.xml
+      - name: Preserve Windows test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-service-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          path: results/runs/

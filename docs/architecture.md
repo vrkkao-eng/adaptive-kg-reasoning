@@ -80,6 +80,12 @@ acknowledgment or deployed service operation. See [v0.6 design](v0.6-design.md).
 
 ## Original v0.1 baseline
 
+v0.7 wraps the existing fixed-trace engine, not a new algorithm. A separate
+registry owns keys/lifecycle/events; lifetime locks and durable tokens fence
+workers. Read-only status avoids oracle reconstruction per poll. Immutable
+attempt snapshots coexist with mutable progress. See [service design](v0.7-design.md)
+and [operations](operations.md) for local deployment and controller-death recovery.
+
 ```text
 synthetic DEBS-shaped CSV
           |
