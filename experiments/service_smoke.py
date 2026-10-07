@@ -17,18 +17,35 @@ def request(base, method, path, body=None, key=None):
         return response.status, json.load(response)
 
 
-def smoke(base, key="container-smoke"):
+def poll_status(base, job_id):
+    """Retry only the documented unavailable read; never mask invalid progress."""
+    try:
+        return request(base, "GET", "/jobs/" + job_id)[1]
+    except urllib.error.HTTPError as exc:
+        if exc.code != 503:
+            raise
+        try:
+            error = json.load(exc)
+        finally:
+            exc.close()
+        if error.get("error") != "progress_unavailable":
+            raise
+        return None
+
+
+def smoke(base, key="container-smoke", *, timeout=30, poll_interval=.05):
     assert request(base, "GET", "/readyz")[0] == 200
     status, created = request(base, "POST", "/jobs", {}, key)
     assert status in (200, 201)
     job_id = created["id"]
-    deadline = time.monotonic() + 30
+    deadline = time.monotonic() + timeout
+    current = None
     while time.monotonic() < deadline:
-        _, current = request(base, "GET", "/jobs/" + job_id)
-        if current["state"] in ("completed", "failed", "interrupted"):
+        current = poll_status(base, job_id)
+        if current is not None and current["state"] in ("completed", "failed", "interrupted"):
             break
-        time.sleep(0.05)
-    assert current["state"] == "completed", current
+        time.sleep(poll_interval)
+    assert current is not None and current["state"] == "completed", current
     assert current["progress"]["committed_queries"] == 56
     assert current["progress"]["unserved_queries"] == 0
     _, repeated = request(base, "POST", "/jobs", {}, key)

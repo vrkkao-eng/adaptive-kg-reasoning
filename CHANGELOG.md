@@ -9,6 +9,7 @@
 - Retain bounded diagnostics and handle owned Windows Python redirector descendants. Never reclaim unrelated/orphan processes by PID.
 - Add non-root digest-pinned container, optional dependency constraints, real HTTP/volume-restart/oracle checker and separate Linux service/container and Windows ownership CI jobs.
 - Initialize each service CI job's evidence parent directory before pytest creates its nested temporary directory, including on a clean checkout.
+- Bound status polling retries for the documented `503 progress_unavailable` response in service tests and the smoke client; continue failing on other errors, permanent unavailability and incorrect final accounting.
 - Preserve v0.5/v0.6 comparative contracts. No online stream, external exactly-once delivery, authentication, dashboard, Jev/agent or separate MSAI application.
 
 ## v0.6.1 — process-resume integrity and failure evidence

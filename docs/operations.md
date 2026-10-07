@@ -42,6 +42,11 @@ input; 413 rejects bodies above 2,048 bytes, including chunked input. 503 means
 operational data/storage/monitor/internal failure, not accepted work. Readiness
 does not perform a full per-job oracle scan or guarantee spare capacity.
 
+For status polling only, `503 progress_unavailable` can be transient during a
+SQLite commit or owned recovery. The smoke client retries that specific code
+within a 30-second deadline; persistent unavailability fails verification.
+Other errors, including invalid progress and storage failures, are not hidden.
+
 ## Non-root container and persistent state
 
 ```bash

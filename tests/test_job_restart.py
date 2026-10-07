@@ -85,7 +85,7 @@ def test_live_orphan_is_not_reclaimed_by_new_controller(tmp_path, orphan_action)
         if orphan_action == "kill":
             child.kill()
             child.wait(timeout=10)
-            wait_for(lambda: service.status(job_id)["state"] == "interrupted")
+            wait_for(lambda: service.registry.get(job_id)["state"] == "interrupted")
             service.resume(job_id, "explicit-resume")
         else:
             ready.with_suffix(".continue").write_bytes(b"continue")

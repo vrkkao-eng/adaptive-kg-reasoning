@@ -75,3 +75,25 @@ def test_busy_and_repeated_resume_no_new_worker(tmp_path):
         assert client.post("/jobs", json={}, headers={"Idempotency-Key": "other"}).status_code == 409
         assert client.post(f"/jobs/{row['id']}/resume").json()["launches"] == 1
         assert len(client.app.state.service.children) == 1
+
+
+def test_locked_progress_returns_transient_error_then_valid_prefix(tmp_path):
+    import sqlite3
+    with TestClient(create_app(tmp_path, worker_pause=("before_update", 0))) as client:
+        row = client.post("/jobs", json={}, headers={"Idempotency-Key": "locked-read"}).json()
+        service = client.app.state.service
+        paused(service, row["id"])
+        database = sqlite3.connect(service.directory(row["id"]) / "progress.sqlite")
+        try:
+            database.execute("BEGIN EXCLUSIVE")
+            response = client.get(f"/jobs/{row['id']}")
+            assert response.status_code == 503
+            assert response.json()["error"] == "progress_unavailable"
+            assert response.json()["request_id"] == response.headers["x-request-id"]
+        finally:
+            database.rollback()
+            database.close()
+        healthy = client.get(f"/jobs/{row['id']}")
+        assert healthy.status_code == 200
+        assert healthy.json()["progress"]["cursor"] == -1
+        assert healthy.json()["launches"] == 1

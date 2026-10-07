@@ -30,11 +30,16 @@ def wait_for(predicate, timeout=15):
     raise AssertionError("Bounded test condition did not occur")
 
 
-def terminal(service, job_id):
+def terminal(service, job_id, timeout=15):
     def result():
-        status = service.status(job_id)
+        try:
+            status = service.status(job_id)
+        except ServiceError as exc:
+            if exc.code == "progress_unavailable" and exc.status == 503:
+                return None
+            raise
         return status if status["state"] in ("completed", "interrupted", "failed") else None
-    return wait_for(result)
+    return wait_for(result, timeout=timeout)
 
 
 def paused(service, job_id):
@@ -46,7 +51,7 @@ def paused(service, job_id):
 def kill(service, job_id):
     child = service.children[job_id][0]
     kill_owned_process(child)
-    wait_for(lambda: service.status(job_id)["state"] == "interrupted")
+    wait_for(lambda: service.registry.get(job_id)["state"] == "interrupted")
 
 
 def assert_snapshot(path):
@@ -54,6 +59,35 @@ def assert_snapshot(path):
     for name, checksum in manifest["artifacts_sha256"].items():
         assert sha256(path / name) == checksum
     return manifest
+
+
+def test_terminal_poll_retries_documented_transient_read(monkeypatch):
+    from types import SimpleNamespace
+    answers = iter([ServiceError("progress_unavailable", 503), {"state": "completed"}])
+    def status(job_id):
+        answer = next(answers)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+    assert terminal(SimpleNamespace(status=status), "job")["state"] == "completed"
+
+
+@pytest.mark.parametrize("code,status", [("progress_invalid", 503), ("storage_unavailable", 503),
+                                         ("job_not_found", 404), ("progress_unavailable", 409)])
+def test_terminal_poll_does_not_hide_other_errors(code, status):
+    from types import SimpleNamespace
+    def fail(job_id):
+        raise ServiceError(code, status)
+    with pytest.raises(ServiceError, match=code):
+        terminal(SimpleNamespace(status=fail), "job")
+
+
+def test_terminal_poll_transient_failure_is_bounded():
+    from types import SimpleNamespace
+    def fail(job_id):
+        raise ServiceError("progress_unavailable", 503)
+    with pytest.raises(AssertionError, match="Bounded test condition"):
+        terminal(SimpleNamespace(status=fail), "job", timeout=.05)
 
 
 def test_durable_idempotency_completion_and_snapshot(tmp_path):
