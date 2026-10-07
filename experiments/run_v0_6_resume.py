@@ -37,11 +37,11 @@ def main():
         parser.error("Expected positive events, finite threshold and non-negative fault/restart bounds")
     run_dir = create_run_dir(ROOT, args.output_dir)
     config = {key: str(value) if isinstance(value, Path) else value for key, value in vars(args).items()}
-    manifest = new_manifest(ROOT, run_dir, benchmark="v0.6.0", config=config)
+    manifest = new_manifest(ROOT, run_dir, benchmark="v0.6.1", config=config)
     manifest.update(package_version=__version__, contract=CONTRACT, acceptance_status="pending",
                     generated=args.input is None, generator_seed=args.seed if args.input is None else None)
     manifest["environment"]["sqlite"] = sqlite3.sqlite_version
-    summaries = []
+    summaries, active_case, expected_cases = [], None, None
     try:
         data, profiles = run_dir / "input.csv", run_dir / "profiles.json"
         shutil.copyfile(args.profiles, profiles)
@@ -57,8 +57,10 @@ def main():
         scenarios = [("none", None, "resume", False)]
         scenarios += [(f"{point}-{policy}", point, policy, False) for point in POINTS for policy in ("stop", "resume")]
         scenarios.append(("persistent-before_commit", "before_commit", "resume", True))
+        expected_cases = len(workloads) * len(scenarios)
         for workload in workloads:
             for name, point, policy, persistent in scenarios:
+                active_case = {"workload": workload, "scenario": name}
                 job_dir = run_dir / f"{workload}-{name}"
                 prepare_job(job_dir, input_path=data, profiles_path=profiles, width=args.width, slide=args.slide,
                             flush=args.flush, threshold=args.threshold, workload=workload, node=args.node)
@@ -66,6 +68,7 @@ def main():
                                    persistent=persistent, fault_window=args.fault_window, max_restarts=args.max_restarts)
                 summaries.append({"workload": workload, "scenario": name, **row})
                 write_csv(run_dir / "summary.csv", summaries)
+                active_case = None
         acceptance = {"schema_version": 1, "contract": CONTRACT,
                       "status": "passed" if all(row["acceptance"] == "passed" for row in summaries) else "failed",
                       "cases": [{key: row[key] for key in ("workload", "scenario", "acceptance", "mismatches")}
@@ -78,6 +81,15 @@ def main():
         print(f"passed: {len(summaries)} process-resume cases; evidence={run_dir}")
     except Exception as exc:
         manifest.update(status="failed", error=f"{type(exc).__name__}: {exc}")
+        if manifest["acceptance_status"] == "pending":
+            manifest["acceptance_status"] = "not_evaluated"
+            acceptance = {"schema_version": 1, "contract": CONTRACT, "status": "not_evaluated",
+                          "expected_cases": expected_cases, "completed_cases": len(summaries),
+                          "aborted_case": active_case, "error": manifest["error"],
+                          "cases": [{key: row[key] for key in ("workload", "scenario", "acceptance", "mismatches")}
+                                    for row in summaries]}
+            (run_dir / "acceptance.json").write_text(json.dumps(acceptance, indent=2, allow_nan=False) + "\n",
+                                                       encoding="utf-8")
         raise
     finally:
         manifest["completed_cases"] = len(summaries)

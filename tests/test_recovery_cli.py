@@ -38,7 +38,7 @@ def test_recovery_bundle_replay_and_hashes(tmp_path):
     assert json.loads((first / "audit.json").read_text()) == json.loads((second / "audit.json").read_text())
     manifest = json.loads((first / "manifest.json").read_text())
     assert manifest["status"] == "passed"
-    assert __version__ == "0.6.0"
+    assert __version__ == "0.6.1"
     assert manifest["benchmark"] == "v0.5.2" and manifest["package_version"] == __version__
     assert manifest["acceptance_status"] == "passed"
     acceptance = json.loads((first / "acceptance.json").read_text())

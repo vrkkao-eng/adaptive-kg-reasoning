@@ -7,7 +7,7 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.6.0.** The project evaluates materialisation, placement and recovery for dynamic KG state. A new fixed-trace experiment kills real worker processes and resumes in fresh processes using transactional local KG state, input/service cursors and incremental audit records. v0.5.2's exception-recovery policies and strict evidence gate remain separate, reproducible baselines. Hashed evidence, oracle checks and CI expose both completed service and retained terminal prefixes. Local receipts are not external exactly-once delivery. This is a code milestone; tags and published releases are tracked separately.
+**Current milestone: v0.6.1.** The project evaluates materialisation, placement and recovery for dynamic KG state. A fixed-trace experiment kills real worker processes and resumes in fresh processes using transactional local KG state, input/service cursors and incremental audit records. This patch closes schema-validation gaps, versions line-ending-independent engine identity and preserves bounded failed-launch diagnostics. v0.5.2's exception-recovery policies and strict evidence gate remain separate, reproducible baselines. Hashed evidence, oracle checks and CI expose both completed service and retained terminal prefixes. Local receipts are not external exactly-once delivery. This is a code milestone; tags and published releases are tracked separately.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
@@ -267,6 +267,19 @@ effect is included. The standard-library SQLite backend requires SQLite 3.37+.
 See [the process-resume contract](docs/v0.6-design.md) for frontiers, failure
 boundaries, manual continuation and artifact-hash caveats.
 
+### v0.6.1 integrity and diagnostics patch
+
+Progress stores must match the complete generated SQLite schema, not only column
+names/types. Engine identity uses versioned CRLF-to-LF normalization while run
+manifests retain raw-byte hashes. Old v0.6.0 jobs are not automatically migrated:
+use their original engine/environment or reproduce into a fresh job.
+
+Failed launches retain bounded output, exit/failure context and a validated
+frontier or explicit unknown value. An aborted matrix exports `not_evaluated`
+acceptance with its completed prefix; actual gate mismatches remain `failed`.
+No unexpected exit or timeout becomes an accepted process-kill scenario.
+See [the hardening and compatibility contract](docs/v0.6.1-hardening.md).
+
 ## Applied AI / FDE evidence boundaries
 
 The original P0–P4 agent roadmap and the KG systems milestones are not equivalent.
@@ -362,6 +375,7 @@ adaptive-kg-reasoning/
 │   ├── v0.5.1-validation.md
 │   ├── v0.5.2-acceptance.md
 │   ├── v0.6-design.md
+│   ├── v0.6.1-hardening.md
 │   ├── reproducibility.md
 │   └── technical-review.md
 ├── experiments/
@@ -459,6 +473,10 @@ Implemented: real parent-terminated worker processes, fresh-process continuation
 transactional KG state/input/service frontiers, local receipts, incremental audit,
 bounded restart exhaustion and a 40-case prefix acceptance matrix. Existing v0.5
 file checkpoint schema/policies remain unchanged. See [the contract](docs/v0.6-design.md).
+
+**v0.6.1:** complete generated-schema checks, versioned engine fingerprints and
+bounded failed-launch/aborted-matrix evidence; no new recovery policy or service.
+See [hardening](docs/v0.6.1-hardening.md).
 
 ### Next boundary — live operation and external delivery (not implemented)
 
