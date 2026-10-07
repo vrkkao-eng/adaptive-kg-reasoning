@@ -21,7 +21,7 @@ def docker(*args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--image", default="adaptive-kg-service:v070")
+    parser.add_argument("--image", default="adaptive-kg-service:v071")
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=False)
