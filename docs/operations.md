@@ -50,9 +50,9 @@ Other errors, including invalid progress and storage failures, are not hidden.
 ## Non-root container and persistent state
 
 ```bash
-docker build -t adaptive-kg-service:v070 .
+docker build -t adaptive-kg-service:v071 .
 docker volume create kg-demo-data
-docker run --name kg-demo -p 127.0.0.1:8000:8000 -v kg-demo-data:/jobs adaptive-kg-service:v070
+docker run --name kg-demo -p 127.0.0.1:8000:8000 -v kg-demo-data:/jobs adaptive-kg-service:v071
 ```
 
 UID 10001 runs the installed package. New named volumes inherit `/jobs` ownership;

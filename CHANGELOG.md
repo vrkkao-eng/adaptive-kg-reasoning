@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.7.1 — CI runtime maintenance
+
+- Update all three CI jobs to Node.js 24-based `actions/checkout@v7`, `actions/setup-python@v7` and `actions/upload-artifact@v6`.
+- Retain Python 3.12, read-only workflow permissions, existing benchmark/service/Windows verification gates and evidence uploads.
+- Align package/OpenAPI/evidence version assertions and current container examples with v0.7.1; preserve historical benchmark labels and v0.7.0 release history.
+- No KG algorithm, recovery policy, API behavior or Python dependency migration is introduced. The Starlette/httpx TestClient warning remains deferred.
+- Existing service roots remain bound to their original runtime/source identity; use the original environment or fresh reproduction rather than bypassing upgrade validation.
+
 ## v0.7.0 — bounded local job service
 
 - Package an optional FastAPI/Uvicorn service with approved fixtures, strict bounded requests, durable idempotency, submit/status/resume and paginated receipts/events.

@@ -7,7 +7,11 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 ![Status Research Prototype](https://img.shields.io/badge/Status-Research%20Prototype-orange)
 
-**Current milestone: v0.7.0.** A bounded local HTTP job service now wraps the correctness-checked fixed-trace KG worker: durable idempotency, explicit resume, lifetime ownership, controller-restart reconciliation, operational progress/events/metrics and immutable attempt evidence. Packaging and non-root persistent-container verification extend the original evaluation/recovery evidence into local operation. The v0.5.2 exception and v0.6.1 process acceptance matrices remain separate reproducible baselines. Local receipts are not external exactly-once delivery; this unauthenticated demo is not a public production service. Tags/releases are tracked separately.
+**Current milestone: v0.7.1.** A bounded local HTTP job service now wraps the correctness-checked fixed-trace KG worker: durable idempotency, explicit resume, lifetime ownership, controller-restart reconciliation, operational progress/events/metrics and immutable attempt evidence. Packaging and non-root persistent-container verification extend the original evaluation/recovery evidence into local operation. The v0.5.2 exception and v0.6.1 process acceptance matrices remain separate reproducible baselines. Local receipts are not external exactly-once delivery; this unauthenticated demo is not a public production service. Tags/releases are tracked separately.
+
+v0.7.1 updates CI actions to Node.js 24-based releases without changing Python
+3.12, reasoning/recovery contracts or service behavior. The Starlette/httpx test
+dependency migration remains deferred.
 
 | Recruiter / reviewer signal | Current evidence |
 | --- | --- |
@@ -513,6 +517,10 @@ single-slot kernel ownership, token-fenced restart reconciliation, explicit resu
 bounded operational reads/events/metrics and immutable attempt evidence. Local
 container checks verify non-root operation, volume restart and offline oracle.
 See [design](docs/v0.7-design.md) and [operations](docs/operations.md).
+
+**v0.7.1:** Node.js 24-based CI tooling, synchronized package/container version
+labels and unchanged verification gates. No new service feature or Python
+dependency migration is included.
 
 ### Next boundary — secured operation and external delivery (not implemented)
 

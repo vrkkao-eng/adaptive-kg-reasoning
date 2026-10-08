@@ -20,7 +20,7 @@ def test_api_end_to_end_contract(tmp_path):
     with TestClient(create_app(tmp_path)) as client:
         assert client.get("/healthz").json()["status"] == "alive"
         assert client.get("/readyz").status_code == 200
-        assert client.get("/openapi.json").json()["info"]["version"] == "0.7.0"
+        assert client.get("/openapi.json").json()["info"]["version"] == "0.7.1"
         response = client.post("/jobs", json={}, headers={"Idempotency-Key": "demo"})
         assert response.status_code == 201 and response.headers["x-request-id"]
         job_id = response.json()["id"]
